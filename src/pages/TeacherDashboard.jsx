@@ -195,6 +195,13 @@ function CreateListModal({ onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
+  const [showCategoryMode, setShowCategoryMode] = useState(false);
+  const [categoryInput, setCategoryInput] = useState('');
+  const [generatingCategory, setGeneratingCategory] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [generatedWords, setGeneratedWords] = useState([]);
+  const [editingWordIndex, setEditingWordIndex] = useState(null);
+  const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -295,6 +302,9 @@ function CreateListModal({ onClose, onSave }) {
     try {
       // Use English word first, then fall back to Bahasa word
       const basePrompt = englishWord || bahasaWord;
+      console.log('Generating image with prompt:', basePrompt);
+      console.log('API URL:', import.meta.env.VITE_API_URL);
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -318,6 +328,88 @@ function CreateListModal({ onClose, onSave }) {
       alert(`❌ Error: ${error.message}`);
     }
     setGeneratingImage(false);
+  };
+
+  const generateFromCategory = async () => {
+    if (!categoryInput.trim()) {
+      alert('Please enter a category (e.g., Animals, Food, Colors)');
+      return;
+    }
+
+    setGeneratingCategory(true);
+    try {
+      console.log('API URL:', import.meta.env.VITE_API_URL);
+      console.log('Full URL:', `${import.meta.env.VITE_API_URL}/api/generate-category`);
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-category`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: categoryInput.trim() })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate category');
+      }
+
+      const data = await response.json();
+      setGeneratedWords(data.words);
+      setShowReviewModal(true);
+      setImageGenerationProgress(0);
+      
+      // Start generating images for all words
+      await generateImagesForWords(data.words);
+    } catch (error) {
+      console.error('Error generating from category:', error);
+      alert(`❌ Error: ${error.message}`);
+    }
+    setGeneratingCategory(false);
+  };
+
+  const generateImagesForWords = async (wordsList) => {
+    const updated = [...wordsList];
+    for (let i = 0; i < updated.length; i++) {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            prompt: updated[i].english,
+            customPrompt: ''
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          updated[i].imageUrl = data.imageUrl;
+          updated[i].status = 'generated';
+          setGeneratedWords([...updated]);
+        }
+      } catch (error) {
+        console.error(`Error generating image for ${updated[i].english}:`, error);
+        updated[i].status = 'failed';
+      }
+      setImageGenerationProgress(Math.round((i + 1) / updated.length * 100));
+    }
+  };
+
+  const acceptGeneratedWords = () => {
+    // Convert generated words to the format needed for saving
+    const convertedWords = generatedWords.map(w => ({
+      word: w.bahasa.trim(),
+      english: w.english.trim(),
+      translation: w.english.trim(),
+      syllables: (w.syllables || w.bahasa).split(/[\s-]+/).filter(s => s.length > 0),
+      imageUrl: w.imageUrl || '',
+      audioUrl: '',
+      pronunciation: ''
+    }));
+    
+    setWords([...words, ...convertedWords]);
+    setGeneratedWords([]);
+    setShowReviewModal(false);
+    setCategoryInput('');
+    setShowCategoryMode(false);
   };
 
   const saveList = async () => {
@@ -352,16 +444,25 @@ function CreateListModal({ onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">📚 Create Vocabulary List</h2>
-        <p className="text-sm text-gray-600 mb-6">Add words with images and audio pronunciations</p>
+      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-1">📚 Create Vocabulary List</h2>
+            <p className="text-sm text-gray-600">Add words with images and audio pronunciations</p>
+          </div>
+          <button onClick={onClose} className="text-2xl text-gray-400 hover:text-gray-600">×</button>
+        </div>
 
-        {/* List Title */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">List Title</label>
-          <input
-            type="text"
-            className="input w-full border-2 border-gray-200 focus:border-blue-400"
+        {/* Mode Toggle - REMOVED FOR SIMPLICITY */}
+
+        {/* Manual Entry Mode - Always Shown */}
+        <div>
+            {/* List Title */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">List Title</label>
+              <input
+                type="text"
+                className="input w-full border-2 border-gray-200 focus:border-blue-400"
             placeholder="e.g., Animals, Colors, Food"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -557,24 +658,28 @@ function CreateListModal({ onClose, onSave }) {
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={saving}
+            disabled={saving || generatingCategory}
             className="btn btn-gray flex-1"
           >
             Cancel
           </button>
           <button
             onClick={saveList}
-            disabled={!title.trim() || words.length === 0 || saving}
+            disabled={!title.trim() || words.length === 0 || saving || generatingCategory}
             className="btn btn-blue flex-1"
           >
             {saving ? '⏳ Saving...' : `💾 Save List (${words.length})`}
           </button>
         </div>
+        </div>
+
+        {/* Review Modal for Generated Words - REMOVED */}
       </div>
     </div>
   );
 }
 
+// Quick add modal for fast list creation
 function QuickAddModal({ onClose, onSave }) {
   const [listName, setListName] = useState('Test Vocabulary List');
   const [creating, setCreating] = useState(false);

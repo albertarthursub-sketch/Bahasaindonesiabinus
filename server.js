@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
+const CLAUDE_API_KEY = (process.env.CLAUDE_API_KEY || '').trim();
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const STABILITY_API_KEY = (process.env.STABILITY_API_KEY || '').trim();
 // Using stable-image-ultra which is the latest model
@@ -163,7 +163,119 @@ app.post('/api/improve-syllables', async (req, res) => {
   }
 });
 
+app.post('/api/generate-category', async (req, res) => {
+  try {
+    const { category } = req.body;
+
+    if (!category || category.trim().length === 0) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+
+    console.log(`Generating vocabulary for category: ${category}`);
+
+    // Use Claude API to generate 10 words for the category
+    const prompt = `Generate exactly 10 vocabulary words for the category "${category}" for Indonesian language learners (ages 5-10).
+
+For each word, provide:
+1. English word
+2. Indonesian (Bahasa) word
+3. Simple 2-3 word example sentence in Indonesian
+
+Format your response as a JSON array with exactly 10 objects like this:
+[
+  {"english": "word", "bahasa": "kata", "example": "Contoh kalimat"},
+  ...
+]
+
+Make sure the words are:
+- Appropriate for young children
+- Common and useful
+- Related to the category "${category}"
+- Clear and easy to illustrate
+
+Return ONLY the JSON array, no other text.`;
+
+    const response = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Claude API error:', error);
+      console.error('Claude API URL:', CLAUDE_API_URL);
+      console.error('Response status:', response.status);
+      return res.status(500).json({ error: 'Failed to generate vocabulary', details: error });
+    }
+
+    const data = await response.json();
+    const content = data.content[0].text;
+    
+    let words = [];
+    try {
+      words = JSON.parse(content);
+    } catch (e) {
+      console.error('Failed to parse Claude response:', content);
+      return res.status(500).json({ error: 'Failed to parse generated vocabulary' });
+    }
+
+    // Generate syllables for each word
+    const wordsWithSyllables = await Promise.all(
+      words.map(async (word) => {
+        try {
+          const syllResponse = await fetch(CLAUDE_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': CLAUDE_API_KEY,
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model: 'claude-3-5-sonnet-20241022',
+              max_tokens: 100,
+              messages: [{
+                role: 'user',
+                content: `Break this Indonesian word "${word.bahasa}" into syllables. Return only the syllables separated by hyphens, like: syl-la-bles`
+              }]
+            })
+          });
+
+          if (syllResponse.ok) {
+            const syllData = await syllResponse.json();
+            const syllables = syllData.content[0].text.trim();
+            return { ...word, syllables, imageUrl: null, status: 'pending' };
+          }
+        } catch (e) {
+          console.error('Error generating syllables:', e);
+        }
+        return { ...word, syllables: word.bahasa, imageUrl: null, status: 'pending' };
+      })
+    );
+
+    res.json({ 
+      category,
+      words: wordsWithSyllables,
+      totalWords: wordsWithSyllables.length,
+      message: 'Vocabulary generated. Images will be generated next.'
+    });
+
+  } catch (error) {
+    console.error('Error generating category vocabulary:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/generate-image', async (req, res) => {
+  let timeout;
   try {
     const { prompt, customPrompt } = req.body;
 
@@ -188,6 +300,9 @@ app.post('/api/generate-image', async (req, res) => {
     formData.append('output_format', 'jpeg');
     formData.append('aspect_ratio', '1:1');
 
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
     const response = await fetch(STABILITY_API_URL, {
       method: 'POST',
       headers: {
@@ -195,8 +310,11 @@ app.post('/api/generate-image', async (req, res) => {
         'Accept': 'image/*',
         ...formData.getHeaders()
       },
-      body: formData
+      body: formData,
+      signal: controller.signal
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const error = await response.text();
@@ -212,6 +330,11 @@ app.post('/api/generate-image', async (req, res) => {
     res.json({ imageUrl: imageDataUrl });
 
   } catch (error) {
+    if (timeout) clearTimeout(timeout);
+    if (error.name === 'AbortError') {
+      console.error('Image generation timeout (60 seconds)');
+      return res.status(408).json({ error: 'Image generation timed out. The API is taking too long.' });
+    }
     console.error('Error generating image:', error);
     res.status(500).json({ error: error.message });
   }
