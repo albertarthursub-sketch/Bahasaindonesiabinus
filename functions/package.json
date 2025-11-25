@@ -1,0 +1,25 @@
+{
+  "name": "bahasa-learning-functions",
+  "description": "Cloud Functions for Bahasa Learning Platform",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && firebase emulator:start --only functions",
+    "shell": "firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-functions": "^4.4.1",
+    "firebase-admin": "^12.0.0",
+    "nodemailer": "^6.9.7",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/node": "^20.5.9"
+  }
+}

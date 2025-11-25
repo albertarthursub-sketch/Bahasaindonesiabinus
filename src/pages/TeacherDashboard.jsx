@@ -1,18 +1,31 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
 function TeacherDashboard() {
+  const navigate = useNavigate();
   const [view, setView] = useState('lists');
   const [lists, setLists] = useState([]);
   const [students, setStudents] = useState([]);
   const [showCreateList, setShowCreateList] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [teacherEmail, setTeacherEmail] = useState('');
 
   useEffect(() => {
+    // Check if teacher is authenticated
+    const email = sessionStorage.getItem('teacherEmail');
+    const token = sessionStorage.getItem('authToken');
+    
+    if (!token || !email) {
+      navigate('/teacher-login');
+      return;
+    }
+    
+    setTeacherEmail(email);
     loadLists();
     loadStudents();
-  }, []);
+  }, [navigate]);
 
   const loadLists = async () => {
     try {
@@ -42,6 +55,12 @@ function TeacherDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('teacherEmail');
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow">
@@ -49,9 +68,12 @@ function TeacherDashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Teacher Dashboard</h1>
-              <p className="text-gray-600">No login required - Start creating!</p>
+              <p className="text-gray-600">👋 Welcome, {teacherEmail}</p>
             </div>
-            <a href="/" className="btn btn-gray">← Home</a>
+            <div className="flex gap-3">
+              <button onClick={handleLogout} className="btn btn-red">🚪 Logout</button>
+              <a href="/" className="btn btn-gray">← Home</a>
+            </div>
           </div>
         </div>
       </div>

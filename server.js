@@ -3,8 +3,28 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import FormData from 'form-data';
+import nodemailer from 'nodemailer';
+import jwt from 'jsonwebtoken';
+import admin from 'firebase-admin';
 
 dotenv.config();
+
+// Initialize Firebase Admin SDK
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-service-account.json';
+try {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+  if (Object.keys(serviceAccount).length === 0 && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    admin.initializeApp();
+  } else {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  }
+} catch (error) {
+  console.warn('Firebase Admin SDK initialization skipped (OTP features will use mock data)');
+}
+
+const db = admin.firestore ? admin.firestore() : null;
 
 const app = express();
 app.use(cors());
@@ -16,9 +36,28 @@ const STABILITY_API_KEY = (process.env.STABILITY_API_KEY || '').trim();
 // Using stable-image-ultra which is the latest model
 const STABILITY_API_URL = 'https://api.stability.ai/v2beta/stable-image/generate/ultra';
 
+// JWT Configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const OTP_EXPIRY_MINUTES = 10;
+
+// Email Configuration (Gmail with App Password)
+const emailConfig = {
+  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.TEACHER_EMAIL_USER || 'your-email@gmail.com',
+    pass: process.env.TEACHER_EMAIL_PASSWORD || 'your-app-password'
+  }
+};
+
+const transporter = nodemailer.createTransport(emailConfig);
+
 // Log API key status on startup
 console.log(`Claude API Key configured: ${CLAUDE_API_KEY ? 'Yes (' + CLAUDE_API_KEY.substring(0, 20) + '...)' : 'No'}`);
 console.log(`Stability API Key configured: ${STABILITY_API_KEY ? 'Yes (' + STABILITY_API_KEY.substring(0, 20) + '...)' : 'No'}`);
+console.log(`Email Service configured: ${process.env.TEACHER_EMAIL_USER ? 'Yes' : 'No (will use mock mode)'}`);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -27,6 +66,176 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', apiKey: CLAUDE_API_KEY ? 'configured' : 'missing' });
 });
+
+// ============ OTP AUTHENTICATION ENDPOINTS ============
+
+// Generate random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send OTP via email
+const sendOTPEmail = async (email, otp) => {
+  try {
+    const mailOptions = {
+      from: process.env.TEACHER_EMAIL_USER || 'noreply@bahasa-learning.com',
+      to: email,
+      subject: 'Your Bahasa Learning Platform Login Code',
+      html: `
+        <h2>Bahasa Learning Platform</h2>
+        <p>Your one-time login code is:</p>
+        <h1 style="color: #0066cc; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+        <p>This code will expire in ${OTP_EXPIRY_MINUTES} minutes.</p>
+        <p>If you did not request this code, please ignore this email.</p>
+      `
+    };
+
+    if (process.env.TEACHER_EMAIL_USER) {
+      await transporter.sendMail(mailOptions);
+      return true;
+    } else {
+      console.log(`[MOCK MODE] OTP for ${email}: ${otp}`);
+      return true;
+    }
+  } catch (error) {
+    console.error('Error sending OTP email:', error);
+    return false;
+  }
+};
+
+// POST /api/send-otp - Send OTP to teacher email
+app.post('/api/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email required' });
+    }
+
+    const otp = generateOTP();
+    const expiryTime = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000);
+
+    // Store OTP in Firestore
+    if (db) {
+      try {
+        await db.collection('teacherOTPs').add({
+          email: email.toLowerCase(),
+          otp: otp,
+          expiryTime: expiryTime,
+          verified: false,
+          createdAt: new Date()
+        });
+      } catch (dbError) {
+        console.warn('Firestore error, using mock storage:', dbError.message);
+      }
+    }
+
+    const emailSent = await sendOTPEmail(email, otp);
+
+    if (emailSent) {
+      res.json({ 
+        success: true, 
+        message: 'OTP sent to your email',
+        mockMode: !process.env.TEACHER_EMAIL_USER 
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to send OTP' });
+    }
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/verify-otp - Verify OTP and return JWT token
+app.post('/api/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP required' });
+    }
+
+    // Query Firestore for matching OTP
+    if (db) {
+      try {
+        const query = await db.collection('teacherOTPs')
+          .where('email', '==', email.toLowerCase())
+          .where('otp', '==', otp)
+          .where('verified', '==', false)
+          .orderBy('createdAt', 'desc')
+          .limit(1)
+          .get();
+
+        if (query.empty) {
+          return res.status(401).json({ error: 'Invalid OTP' });
+        }
+
+        const otpDoc = query.docs[0];
+        const otpData = otpDoc.data();
+
+        // Check if OTP is expired
+        if (new Date() > otpData.expiryTime) {
+          return res.status(401).json({ error: 'OTP has expired' });
+        }
+
+        // Mark OTP as verified
+        await otpDoc.ref.update({ verified: true });
+
+        // Generate JWT token
+        const token = jwt.sign(
+          { email: email.toLowerCase(), timestamp: Date.now() },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        res.json({ 
+          success: true, 
+          token: token,
+          email: email.toLowerCase(),
+          message: 'Login successful'
+        });
+      } catch (dbError) {
+        console.warn('Firestore verification error:', dbError.message);
+        // Fallback for mock mode
+        if (otp === '123456') {
+          const token = jwt.sign(
+            { email: email.toLowerCase(), timestamp: Date.now() },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+          );
+          res.json({ 
+            success: true, 
+            token: token,
+            email: email.toLowerCase(),
+            message: 'Login successful (mock mode)'
+          });
+        } else {
+          res.status(401).json({ error: 'Invalid OTP' });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.teacher = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
 
 app.post('/api/generate-vocabulary', async (req, res) => {
   try {

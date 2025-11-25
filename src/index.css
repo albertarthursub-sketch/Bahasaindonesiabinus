@@ -23,6 +23,14 @@
     @apply bg-purple-600 text-white hover:bg-purple-700;
   }
   
+  .btn-cyan {
+    @apply bg-cyan-600 text-white hover:bg-cyan-700;
+  }
+  
+  .btn-red {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  
   .card {
     @apply bg-white rounded-xl shadow-lg p-6;
   }

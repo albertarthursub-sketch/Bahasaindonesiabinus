@@ -14,7 +14,7 @@ function Home() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Link to="/teacher">
+          <Link to="/teacher-login">
             <div className="card hover:shadow-xl transition-all cursor-pointer border-4 border-transparent hover:border-blue-400">
               <div className="text-center">
                 <div className="text-6xl mb-4">👩‍🏫</div>
@@ -25,7 +25,7 @@ function Home() {
                   Create vocabulary lists, import students, and track progress
                 </p>
                 <div className="text-sm text-gray-500">
-                  ✓ No login required<br/>
+                  ✓ Email OTP Login<br/>
                   ✓ Import student names<br/>
                   ✓ Auto-generate codes
                 </div>
