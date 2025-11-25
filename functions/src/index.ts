@@ -14,6 +14,11 @@ const corsHandler = cors({ origin: true });
 const OTP_EXPIRY_MINUTES = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+// Verify required environment variables in production
+if (process.env.GCLOUD_PROJECT && !process.env.TEACHER_EMAIL_USER) {
+  console.warn('WARNING: TEACHER_EMAIL_USER not configured. OTP emails will not be sent. Configure in Firebase Console.');
+}
+
 // Email Configuration
 let transporter: nodemailer.Transporter;
 

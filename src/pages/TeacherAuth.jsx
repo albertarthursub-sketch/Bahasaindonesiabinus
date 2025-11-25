@@ -51,19 +51,14 @@ function TeacherAuth() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMockMode(data.mockMode);
         setStep(2);
-        setMessage(data.mockMode ? '📧 Mock mode: Use OTP 123456' : '📧 Check your email for the OTP code');
+        setMessage('📧 Check your email for the OTP code');
       } else {
         setError(data.error || 'Failed to send OTP');
       }
     } catch (err) {
       console.error('Send OTP error:', err);
-      setError(`Network error: ${err.message}. Using mock mode (OTP: 123456)`);
-      // Auto-enable mock mode on network error
-      setMockMode(true);
-      setStep(2);
-      setMessage('📧 Mock mode enabled: Use OTP 123456');
+      setError('Network error: Unable to send OTP. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -107,18 +102,7 @@ function TeacherAuth() {
       }
     } catch (err) {
       console.error('Verify OTP error:', err);
-      // Auto-verify with mock OTP for testing
-      if (otp === '123456') {
-        setError('');
-        sessionStorage.setItem('authToken', 'mock-token-' + Date.now());
-        sessionStorage.setItem('teacherEmail', email);
-        setMessage('✅ Login successful (mock mode)! Redirecting...');
-        setTimeout(() => {
-          navigate('/teacher');
-        }, 1000);
-      } else {
-        setError(`Network error: ${err.message}`);
-      }
+      setError('Network error: Unable to verify OTP. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
