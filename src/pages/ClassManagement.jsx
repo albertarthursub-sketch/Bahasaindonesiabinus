@@ -24,6 +24,7 @@ function ClassManagement() {
   const [showEditStudent, setShowEditStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [editStudentName, setEditStudentName] = useState('');
+  const [studentViewMode, setStudentViewMode] = useState('card');
 
   useEffect(() => {
     loadClasses();
@@ -436,69 +437,162 @@ function ClassManagement() {
                 {classStudents.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">No students in this class yet</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b-2 border-gray-300">
-                          <th className="text-left py-3 px-3">Name</th>
-                          <th className="text-left py-3 px-3">Login Code</th>
-                          <th className="text-left py-3 px-3">Status</th>
-                          <th className="text-left py-3 px-3">Action</th>
-                          <th className="text-center py-3 px-3">Options</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <div>
+                    {/* View Mode Toggle */}
+                    <div className="flex gap-2 mb-6">
+                      <button
+                        onClick={() => setStudentViewMode('card')}
+                        className={`btn px-4 py-2 rounded-lg font-semibold transition-all ${
+                          studentViewMode === 'card'
+                            ? 'bg-blue-500 text-white shadow-lg'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        📇 Card View
+                      </button>
+                      <button
+                        onClick={() => setStudentViewMode('list')}
+                        className={`btn px-4 py-2 rounded-lg font-semibold transition-all ${
+                          studentViewMode === 'list'
+                            ? 'bg-blue-500 text-white shadow-lg'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        📋 List View
+                      </button>
+                    </div>
+
+                    {/* Card View */}
+                    {studentViewMode === 'card' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {classStudents.map(student => (
-                          <tr key={student.id} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="py-3 px-3 font-semibold">{student.name}</td>
-                            <td className="py-3 px-3">
-                              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">
-                                {student.loginCode}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className={student.suspended ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                                {student.suspended ? '🚫 Suspended' : '✅ Active'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
+                          <div
+                            key={student.id}
+                            className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg shadow-lg hover:shadow-xl transition-all p-6 group"
+                          >
+                            {/* Student Avatar and Name */}
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="text-4xl bg-white rounded-full w-12 h-12 flex items-center justify-center shadow">
+                                {student.avatar || '🎓'}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-lg font-bold text-gray-800 truncate">{student.name}</h3>
+                                <p className="text-xs text-gray-600">
+                                  {student.suspended ? '🚫 Suspended' : '✅ Active'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Login Code */}
+                            <div className="bg-white rounded-lg p-3 mb-4 border border-blue-200">
+                              <p className="text-xs text-gray-600 font-semibold mb-1">LOGIN CODE</p>
+                              <div className="flex items-center justify-between">
+                                <code className="text-xl font-bold text-blue-600 tracking-widest">{student.loginCode}</code>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(student.loginCode);
+                                    alert(`✅ Copied: ${student.loginCode}`);
+                                  }}
+                                  className="text-blue-500 hover:text-blue-700 hover:bg-blue-100 p-2 rounded transition-all"
+                                  title="Copy code"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 flex-wrap">
+                              <button
+                                onClick={() => openEditStudent(student)}
+                                className="flex-1 btn btn-blue text-xs py-2 rounded-lg font-semibold hover:shadow-md transition-all"
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                onClick={() => student.suspended ? unsuspendStudent(student.id) : suspendStudent(student.id)}
+                                className={`flex-1 btn text-xs py-2 rounded-lg font-semibold hover:shadow-md transition-all ${
+                                  student.suspended
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                }`}
+                              >
+                                {student.suspended ? '🔓 Activate' : '⏸️ Suspend'}
+                              </button>
+                              <button
+                                onClick={() => deleteStudent(student.id)}
+                                className="flex-1 btn bg-red-100 text-red-700 hover:bg-red-200 text-xs py-2 rounded-lg font-semibold hover:shadow-md transition-all"
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* List View */}
+                    {studentViewMode === 'list' && (
+                      <div className="space-y-2">
+                        {classStudents.map(student => (
+                          <div
+                            key={student.id}
+                            className="bg-white border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-lg transition-all p-4 flex items-center justify-between gap-4 group"
+                          >
+                            {/* Left Section - Name and Code */}
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                              <div className="text-2xl flex-shrink-0">{student.avatar || '🎓'}</div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-gray-800 truncate">{student.name}</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <code className="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                    {student.loginCode}
+                                  </code>
+                                  <span className={`text-sm font-semibold ${student.suspended ? 'text-red-600' : 'text-green-600'}`}>
+                                    {student.suspended ? '🚫 Suspended' : '✅ Active'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right Section - Actions */}
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(student.loginCode);
                                   alert(`✅ Copied: ${student.loginCode}`);
                                 }}
-                                className="text-blue-500 hover:text-blue-700 text-xs font-semibold"
+                                className="btn bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm py-2 px-3 rounded-lg font-semibold transition-all"
                               >
-                                Copy Code
+                                📋 Copy
                               </button>
-                            </td>
-                            <td className="py-3 px-3 text-center relative group">
-                              <button className="text-gray-500 hover:text-gray-700 font-bold text-lg">⋯</button>
-                              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg hidden group-hover:block z-10">
-                                <button
-                                  onClick={() => openEditStudent(student)}
-                                  className="block w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-600 font-semibold text-sm border-b"
-                                >
-                                  ✏️ Edit Name
-                                </button>
-                                <button
-                                  onClick={() => student.suspended ? unsuspendStudent(student.id) : suspendStudent(student.id)}
-                                  className="block w-full text-left px-4 py-2 hover:bg-yellow-50 text-yellow-600 font-semibold text-sm border-b"
-                                >
-                                  {student.suspended ? '🔓 Activate' : '⏸️ Suspend'}
-                                </button>
-                                <button
-                                  onClick={() => deleteStudent(student.id)}
-                                  className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-semibold text-sm"
-                                >
-                                  🗑️ Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
+                              <button
+                                onClick={() => openEditStudent(student)}
+                                className="btn btn-blue text-sm py-2 px-3 rounded-lg font-semibold transition-all"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => student.suspended ? unsuspendStudent(student.id) : suspendStudent(student.id)}
+                                className={`btn text-sm py-2 px-3 rounded-lg font-semibold transition-all ${
+                                  student.suspended
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                }`}
+                              >
+                                {student.suspended ? '🔓' : '⏸️'}
+                              </button>
+                              <button
+                                onClick={() => deleteStudent(student.id)}
+                                className="btn bg-red-100 hover:bg-red-200 text-red-700 text-sm py-2 px-3 rounded-lg font-semibold transition-all"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

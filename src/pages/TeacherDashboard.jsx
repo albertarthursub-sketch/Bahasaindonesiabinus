@@ -68,7 +68,7 @@ function TeacherDashboard() {
             onClick={() => setView('students')}
             className={`btn ${view === 'students' ? 'btn-blue' : 'btn-gray'}`}
           >
-            👥 Students ({students.length})
+            🏫 Classes ({students.length})
           </button>
           <a href="/classes" className="btn btn-cyan">
             🏫 Manage Classes
