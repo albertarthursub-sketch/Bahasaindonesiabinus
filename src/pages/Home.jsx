@@ -14,24 +14,31 @@ function Home() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Link to="/teacher-login">
-            <div className="card hover:shadow-xl transition-all cursor-pointer border-4 border-transparent hover:border-blue-400">
-              <div className="text-center">
-                <div className="text-6xl mb-4">👩‍🏫</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                  For Teachers
-                </h2>
-                <p className="text-gray-600 mb-4">
-                  Create vocabulary lists, import students, and track progress
-                </p>
-                <div className="text-sm text-gray-500">
-                  ✓ Email OTP Login<br/>
-                  ✓ Import student names<br/>
-                  ✓ Auto-generate codes
+          <div>
+            <Link to="/teacher-login">
+              <div className="card hover:shadow-xl transition-all cursor-pointer border-4 border-transparent hover:border-blue-400 mb-4">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">👩‍🏫</div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                    For Teachers
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    Create vocabulary lists, import students, and track progress
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    ✓ Email OTP Login<br/>
+                    ✓ Import student names<br/>
+                    ✓ Auto-generate codes
+                  </div>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+            <Link to="/teacher-signup">
+              <button className="w-full btn bg-green-500 hover:bg-green-600 text-white">
+                Create New Account →
+              </button>
+            </Link>
+          </div>
 
           <Link to="/student">
             <div className="card hover:shadow-xl transition-all cursor-pointer border-4 border-transparent hover:border-green-400">

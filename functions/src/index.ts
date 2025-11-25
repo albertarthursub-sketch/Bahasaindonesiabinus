@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
@@ -19,23 +20,29 @@ if (process.env.GCLOUD_PROJECT && !process.env.TEACHER_EMAIL_USER) {
   console.warn('WARNING: TEACHER_EMAIL_USER not configured. OTP emails will not be sent. Configure in Firebase Console.');
 }
 
-// Email Configuration
-let transporter: nodemailer.Transporter;
-
-try {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.TEACHER_EMAIL_USER || 'your-email@gmail.com',
-      pass: process.env.TEACHER_EMAIL_PASSWORD || 'your-app-password'
-    }
-  });
-} catch (error) {
-  console.error('Email transporter initialization error:', error);
-}
+// Email Configuration - Initialize as needed to pick up latest environment variables
+const getEmailTransporter = (): nodemailer.Transporter | null => {
+  try {
+    const emailUser = process.env.TEACHER_EMAIL_USER || 'your-email@gmail.com';
+    const emailPass = process.env.TEACHER_EMAIL_PASSWORD || 'your-app-password';
+    
+    console.log(`📧 Email Config: user=${emailUser}, password=${emailPass ? '***' + emailPass.slice(-4) : 'NOT SET'}`);
+    
+    return nodemailer.createTransport({
+      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: emailUser,
+        pass: emailPass
+      }
+    });
+  } catch (error) {
+    console.error('Email transporter initialization error:', error);
+    return null;
+  }
+};
 
 // Generate random 6-digit OTP
 const generateOTP = (): string => {
@@ -63,8 +70,14 @@ const sendOTPEmail = async (email: string, otp: string): Promise<boolean> => {
     };
 
     if (process.env.TEACHER_EMAIL_USER && process.env.TEACHER_EMAIL_PASSWORD) {
-      await transporter.sendMail(mailOptions);
-      return true;
+      const transporter = getEmailTransporter();
+      if (transporter) {
+        await transporter.sendMail(mailOptions);
+        console.log(`OTP email sent to ${email}`);
+        return true;
+      }
+      console.warn('Email transporter not available');
+      return false;
     } else {
       console.log(`[MOCK MODE] OTP for ${email}: ${otp}`);
       return true;

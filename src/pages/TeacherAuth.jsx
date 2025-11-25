@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { firebaseConfig } from '../firebase';
 
 function TeacherAuth() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Email, 2: OTP verification
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [mockMode, setMockMode] = useState(false);
 
   // Firebase Cloud Functions URLs
   const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
@@ -29,8 +26,8 @@ function TeacherAuth() {
 
   const auth = getAuth();
 
-  // Step 1: Send OTP to email
-  const handleSendOTP = async (e) => {
+  // Login with email and OTP
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
@@ -40,38 +37,8 @@ function TeacherAuth() {
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await fetch(SEND_OTP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setStep(2);
-        setMessage('📧 Check your email for the OTP code');
-      } else {
-        setError(data.error || 'Failed to send OTP');
-      }
-    } catch (err) {
-      console.error('Send OTP error:', err);
-      setError('Network error: Unable to send OTP. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Verify OTP and login
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    setError('');
-    setMessage('');
-
     if (!otp || otp.length !== 6) {
-      setError('Please enter a 6-digit OTP');
+      setError('Please enter a 6-digit code');
       return;
     }
 
@@ -86,10 +53,7 @@ function TeacherAuth() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Sign in with custom token from Cloud Function
         await signInWithCustomToken(auth, data.token);
-        
-        // Store email and custom token in session storage
         sessionStorage.setItem('authToken', data.token);
         sessionStorage.setItem('teacherEmail', data.email);
         
@@ -98,11 +62,11 @@ function TeacherAuth() {
           navigate('/teacher');
         }, 1000);
       } else {
-        setError(data.error || 'Invalid OTP');
+        setError(data.error || 'Invalid email or code');
       }
     } catch (err) {
-      console.error('Verify OTP error:', err);
-      setError('Network error: Unable to verify OTP. Please check your connection and try again.');
+      console.error('Login error:', err);
+      setError('Network error: Unable to login');
     } finally {
       setLoading(false);
     }
@@ -115,124 +79,85 @@ function TeacherAuth() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">🔐</div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Teacher Portal</h1>
-            <p className="text-gray-600">Secure Login with OTP</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Teacher Login</h1>
+            <p className="text-gray-600">Verify with OTP</p>
           </div>
 
-          {step === 1 ? (
-            // Step 1: Email Input
-            <form onSubmit={handleSendOTP} className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  📧 Your Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="teacher@example.com"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none font-medium"
-                  disabled={loading}
-                />
-                <p className="text-xs text-gray-500 mt-2">We'll send a one-time code to your email</p>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg font-semibold">
-                  ❌ {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl disabled:shadow-none"
-              >
-                {loading ? '⏳ Sending...' : '📤 Send OTP Code'}
-              </button>
-
-              <p className="text-center text-xs text-gray-500">
-                No registration needed - just enter your email!
-              </p>
-            </form>
-          ) : (
-            // Step 2: OTP Verification
-            <form onSubmit={handleVerifyOTP} className="space-y-6">
-              <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-gray-600">Code sent to:</p>
-                <p className="font-bold text-gray-800 text-lg">{email}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  🔑 Enter OTP Code
-                </label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  maxLength="6"
-                  className="w-full px-4 py-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none font-bold text-2xl text-center tracking-widest"
-                  disabled={loading}
-                  autoFocus
-                />
-                {mockMode && (
-                  <p className="text-xs text-blue-600 mt-2 font-semibold">💡 Mock mode: Use 123456</p>
-                )}
-              </div>
-
-              {message && (
-                <div className="bg-blue-50 border-2 border-blue-200 text-blue-700 px-4 py-3 rounded-lg font-semibold">
-                  ℹ️ {message}
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg font-semibold">
-                  ❌ {error}
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep(1);
-                    setOtp('');
-                    setError('');
-                    setMessage('');
-                  }}
-                  disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg transition-all"
-                >
-                  ← Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || otp.length !== 6}
-                  className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl disabled:shadow-none"
-                >
-                  {loading ? '⏳ Verifying...' : '✅ Login'}
-                </button>
-              </div>
-
-              <p className="text-center text-xs text-gray-500">
-                Didn't receive the code? Check your spam folder or resend.
-              </p>
-            </form>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-300 rounded-lg text-red-700 font-semibold">
+              ❌ {error}
+            </div>
           )}
+
+          {/* Success Message */}
+          {message && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg text-green-700 font-semibold">
+              ✅ {message}
+            </div>
+          )}
+
+          {/* Login Form - Simple 2 boxes */}
+          <form onSubmit={handleLogin} className="space-y-6">
+            {/* Email Box */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                📧 Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your.email@school.com"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">Must match the email that received your OTP</p>
+            </div>
+
+            {/* OTP Code Box */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                🔑 Enter OTP Code
+              </label>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                maxLength="6"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-center text-3xl font-bold font-mono focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">6-digit code from your email</p>
+            </div>
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={loading || !email || !otp}
+              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold py-3 rounded-lg transition-all shadow-lg hover:shadow-xl"
+            >
+              {loading ? '⏳ Logging in...' : '✅ Login'}
+            </button>
+          </form>
 
           {/* Info Box */}
           <div className="mt-8 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg p-4">
             <p className="text-xs text-gray-700 font-semibold">
-              ℹ️ <strong>One-time passwords expire in 10 minutes.</strong> For security, each code can only be used once.
+              ℹ️ Enter your email and the 6-digit code you received
             </p>
           </div>
 
-          {/* Navigation Links */}
-          <div className="mt-6 text-center">
-            <a href="/" className="text-sm text-purple-600 hover:text-purple-700 font-semibold">
+          {/* Navigation */}
+          <div className="mt-6 text-center space-y-3">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <a href="/teacher-signup" className="text-green-600 hover:text-green-700 font-bold">
+                Sign Up →
+              </a>
+            </p>
+            <a href="/" className="text-xs text-purple-600 hover:text-purple-700 font-semibold">
               ← Back to Home
             </a>
           </div>

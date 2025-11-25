@@ -4,6 +4,7 @@ import FirebaseSetup from './pages/FirebaseSetup';
 import AdminCleanup from './pages/AdminCleanup';
 import TestFirebase from './pages/TestFirebase';
 import TeacherAuth from './pages/TeacherAuth';
+import TeacherSignUp from './pages/TeacherSignUp';
 import TeacherDashboard from './pages/TeacherDashboard';
 import ClassManagement from './pages/ClassManagement';
 import TeacherAnalytics from './pages/TeacherAnalytics';
@@ -28,6 +29,7 @@ function App() {
         
         {/* Teacher Authentication */}
         <Route path="/teacher-login" element={<TeacherAuth />} />
+        <Route path="/teacher-signup" element={<TeacherSignUp />} />
         
         {/* Protected Teacher Routes */}
         <Route path="/teacher" element={<ProtectedRoute element={<TeacherDashboard />} />} />
