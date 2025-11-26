@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
   // Step states
@@ -211,37 +212,52 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
     setLoading(true);
 
     try {
-      // Store only the essential fields - don't include null imageUrl values
-      const words = generatedItems.map(item => {
-        const wordObj = {
-          name: item.bahasa,
-          word: item.bahasa,  // Include both for compatibility
-          english: item.english
-        };
-        
-        // Only add imageUrl if it actually exists (not null)
-        if (item.imageUrl) {
-          wordObj.imageUrl = item.imageUrl;
-        }
-        
-        return wordObj;
-      });
+      // Upload images to Cloud Storage and get URLs
+      const wordsForFirestore = await Promise.all(
+        generatedItems.map(async (item) => {
+          let imageUrl = '';
 
-      console.log('📤 Saving words to Firestore:', words);
+          // If image is a data URL (base64), upload it to Cloud Storage
+          if (item.imageUrl && item.imageUrl.startsWith('data:')) {
+            try {
+              const blob = await fetch(item.imageUrl).then(res => res.blob());
+              const fileName = `ai-vocabulary/${Date.now()}-${item.bahasa || 'image'}.png`;
+              const storageRef = ref(storage, fileName);
+              await uploadBytes(storageRef, blob);
+              imageUrl = await getDownloadURL(storageRef);
+              console.log(`✅ Uploaded image for ${item.bahasa} to Cloud Storage: ${imageUrl}`);
+            } catch (err) {
+              console.error(`Error uploading image for ${item.bahasa}:`, err);
+              // Continue without image if upload fails
+            }
+          } else if (item.imageUrl) {
+            imageUrl = item.imageUrl;
+          }
 
-      const docRef = await addDoc(collection(db, 'lists'), {
+          return {
+            name: item.bahasa,
+            word: item.bahasa,
+            english: item.english,
+            imageUrl: imageUrl || ''
+          };
+        })
+      );
+
+      console.log('📤 Saving AI-generated list with words:', wordsForFirestore);
+
+      await addDoc(collection(db, 'lists'), {
         title: listTitle,
         description: `Auto-generated vocabulary list about ${theme}`,
         learningArea: 'image-vocabulary',
         mode: 'image-vocabulary',
         teacherId: teacherId,
-        words: words,
+        words: wordsForFirestore,
         createdAt: new Date().toISOString(),
         generatedByAI: true,
         theme: theme
       });
 
-      console.log('✅ AI-generated vocabulary list saved with ID:', docRef.id);
+      console.log('✅ AI-generated vocabulary list saved!');
       onSave();
     } catch (err) {
       console.error('Error saving list:', err);

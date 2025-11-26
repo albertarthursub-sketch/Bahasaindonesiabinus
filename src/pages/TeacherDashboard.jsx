@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import LearningModeSelector from '../components/LearningModeSelector';
 import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
 import AIVocabularyGenerator from '../components/AIVocabularyGenerator';
@@ -538,16 +539,41 @@ function CreateListModal({ onClose, onSave, teacherId }) {
 
     setSaving(true);
     try {
-      // Convert syllables array to string for Firestore compatibility
-      const wordsForFirestore = words.map(w => ({
-        word: w.word,
-        english: w.english,
-        translation: w.translation,
-        syllables: Array.isArray(w.syllables) ? w.syllables.join('-') : w.syllables,
-        imageUrl: w.imageUrl || '',
-        audioUrl: w.audioUrl || '',
-        pronunciation: w.pronunciation || ''
-      }));
+      // Upload images to Cloud Storage and get URLs
+      const wordsForFirestore = await Promise.all(
+        words.map(async (w) => {
+          let imageUrl = '';
+
+          // If image is a data URL (base64), upload it to Cloud Storage
+          if (w.imageUrl && w.imageUrl.startsWith('data:')) {
+            try {
+              const blob = await fetch(w.imageUrl).then(res => res.blob());
+              const fileName = `vocabulary/${Date.now()}-${w.word || 'image'}.png`;
+              const storageRef = ref(storage, fileName);
+              await uploadBytes(storageRef, blob);
+              imageUrl = await getDownloadURL(storageRef);
+              console.log(`✅ Uploaded image for ${w.word} to Cloud Storage: ${imageUrl}`);
+            } catch (err) {
+              console.error(`Error uploading image for ${w.word}:`, err);
+              // Continue without image if upload fails
+            }
+          } else if (w.imageUrl) {
+            imageUrl = w.imageUrl;
+          }
+
+          return {
+            word: w.word || '',
+            english: w.english || '',
+            translation: w.translation || '',
+            syllables: Array.isArray(w.syllables) ? w.syllables.join('-') : (w.syllables || ''),
+            imageUrl: imageUrl || '',
+            audioUrl: w.audioUrl ? w.audioUrl.substring(0, 500) : '',
+            pronunciation: w.pronunciation ? w.pronunciation.substring(0, 500) : ''
+          };
+        })
+      );
+
+      console.log('📤 Saving list with words:', wordsForFirestore);
 
       await addDoc(collection(db, 'lists'), {
         title: title.trim(),
@@ -557,12 +583,14 @@ function CreateListModal({ onClose, onSave, teacherId }) {
         words: wordsForFirestore,
         createdAt: new Date().toISOString()
       });
+
       alert('✅ List saved successfully!');
       onSave();
       onClose();
     } catch (error) {
-      console.error('Error saving list:', error);
-      alert('Error saving list');
+      console.error('❌ Error saving list:', error);
+      console.error('Error details:', error.message);
+      alert(`Error saving list: ${error.message}`);
     }
     setSaving(false);
   };
