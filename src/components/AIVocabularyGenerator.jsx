@@ -66,7 +66,10 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
       
       // Add ID to each item for tracking
       const itemsWithId = data.items.map((item, idx) => ({
-        ...item,
+        bahasa: item.bahasa,
+        english: item.english,
+        options: item.options || [],
+        correctAnswer: item.correctAnswer || item.bahasa,
         id: idx,
         imageUrl: null,
         imageGenerated: false
@@ -94,7 +97,7 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
     try {
       const apiKey = import.meta.env.VITE_STABILITY_API_KEY;
       if (!apiKey) {
-        throw new Error('Stability AI key not configured');
+        throw new Error('Stability AI key not configured. Check VITE_STABILITY_API_KEY in .env');
       }
 
       console.log(`🎨 Generating image for: ${currentItem.bahasa} (${currentItem.english})`);
@@ -122,8 +125,9 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Image generation failed');
+        const errorText = await response.text();
+        console.error('Stability API error response:', response.status, errorText);
+        throw new Error(`Stability API error ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
       const data = await response.json();
@@ -139,6 +143,8 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
         ));
 
         console.log(`✅ Image generated for ${currentItem.bahasa}`);
+      } else {
+        throw new Error('No image data in response');
       }
     } catch (err) {
       console.error('Error generating image:', err);
@@ -205,13 +211,21 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
     setLoading(true);
 
     try {
-      // Store only the essential fields - options will be generated dynamically by ImageVocabularyLearning
-      const words = generatedItems.map(item => ({
-        name: item.bahasa,
-        word: item.bahasa,  // Include both for compatibility
-        english: item.english,
-        imageUrl: item.imageUrl || null
-      }));
+      // Store only the essential fields - don't include null imageUrl values
+      const words = generatedItems.map(item => {
+        const wordObj = {
+          name: item.bahasa,
+          word: item.bahasa,  // Include both for compatibility
+          english: item.english
+        };
+        
+        // Only add imageUrl if it actually exists (not null)
+        if (item.imageUrl) {
+          wordObj.imageUrl = item.imageUrl;
+        }
+        
+        return wordObj;
+      });
 
       console.log('📤 Saving words to Firestore:', words);
 

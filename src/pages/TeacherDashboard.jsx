@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
+import LearningModeSelector from '../components/LearningModeSelector';
+import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
+import AIVocabularyGenerator from '../components/AIVocabularyGenerator';
 
 function TeacherDashboard() {
   const navigate = useNavigate();
@@ -10,7 +13,12 @@ function TeacherDashboard() {
   const [students, setStudents] = useState([]);
   const [showCreateList, setShowCreateList] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showImageVocab, setShowImageVocab] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [selectedMode, setSelectedMode] = useState(null);
   const [teacherEmail, setTeacherEmail] = useState('');
+  const [teacherId, setTeacherId] = useState('');
 
   useEffect(() => {
     // Check if teacher is authenticated
@@ -23,25 +31,48 @@ function TeacherDashboard() {
     }
     
     setTeacherEmail(email);
-    loadLists();
-    loadStudents();
+    setTeacherId(token); // Use token as teacher ID (Firebase UID)
+    loadLists(token);
+    loadStudents(token);
   }, [navigate]);
 
-  const loadLists = async () => {
+  const loadLists = async (teacherId) => {
     try {
-      const snapshot = await getDocs(collection(db, 'lists'));
+      // Load only lists created by this teacher
+      const q = query(collection(db, 'lists'), where('teacherId', '==', teacherId));
+      const snapshot = await getDocs(q);
       setLists(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      console.log('✅ Loaded lists');
+      console.log('✅ Loaded teacher lists:', snapshot.docs.length);
     } catch (error) {
       console.error('❌ Error loading lists:', error);
     }
   };
 
-  const loadStudents = async () => {
+  const handleCreateListClick = () => {
+    // Show mode selector to choose between syllable or image-based learning
+    setShowModeSelector(true);
+  };
+
+  const handleModeSelect = (mode) => {
+    setSelectedMode(mode);
+    setShowModeSelector(false);
+    
+    if (mode === 'image-vocabulary') {
+      // Show image vocabulary creation modal
+      setShowImageVocab(true);
+    } else {
+      // Show traditional syllable mode
+      setShowCreateList(true);
+    }
+  };
+
+  const loadStudents = async (teacherId) => {
     try {
-      const snapshot = await getDocs(collection(db, 'classes'));
+      // Load only classes created by this teacher
+      const q = query(collection(db, 'classes'), where('teacherId', '==', teacherId));
+      const snapshot = await getDocs(q);
       const loadedClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log('✅ Loaded classes:', loadedClasses);
+      console.log('✅ Loaded teacher classes:', loadedClasses);
       setStudents(loadedClasses);
     } catch (error) {
       console.error('❌ Error loading classes:', error);
@@ -51,7 +82,7 @@ function TeacherDashboard() {
   const deleteList = async (id) => {
     if (confirm('Delete this list?')) {
       await deleteDoc(doc(db, 'lists', id));
-      loadLists();
+      loadLists(teacherId);
     }
   };
 
@@ -106,8 +137,11 @@ function TeacherDashboard() {
         {view === 'lists' && (
           <div>
             <div className="mb-6 flex gap-3 flex-wrap">
-              <button onClick={() => setShowCreateList(true)} className="btn btn-blue">
+              <button onClick={handleCreateListClick} className="btn btn-blue">
                 + Create New List
+              </button>
+              <button onClick={() => setShowAIGenerator(true)} className="btn btn-purple">
+                🤖 AI Generate Vocabulary
               </button>
             </div>
 
@@ -180,6 +214,28 @@ function TeacherDashboard() {
         )}
       </div>
 
+      {showModeSelector && (
+        <LearningModeSelector
+          onClose={() => setShowModeSelector(false)}
+          onSelect={handleModeSelect}
+        />
+      )}
+
+      {showImageVocab && (
+        <AddVocabularyWithImage
+          onClose={() => {
+            setShowImageVocab(false);
+            setSelectedMode(null);
+          }}
+          onSave={() => {
+            setShowImageVocab(false);
+            setSelectedMode(null);
+            loadLists(teacherId);
+          }}
+          teacherId={teacherId}
+        />
+      )}
+
       {showCreateList && (
         <CreateListModal
           onClose={() => setShowCreateList(false)}
@@ -187,6 +243,7 @@ function TeacherDashboard() {
             setShowCreateList(false);
             loadLists();
           }}
+          teacherId={teacherId}
         />
       )}
 
@@ -199,11 +256,22 @@ function TeacherDashboard() {
           }}
         />
       )}
+
+      {showAIGenerator && (
+        <AIVocabularyGenerator
+          onClose={() => setShowAIGenerator(false)}
+          onSave={() => {
+            setShowAIGenerator(false);
+            loadLists(teacherId);
+          }}
+          teacherId={teacherId}
+        />
+      )}
     </div>
   );
 }
 
-function CreateListModal({ onClose, onSave }) {
+function CreateListModal({ onClose, onSave, teacherId }) {
   const [title, setTitle] = useState('');
   const [words, setWords] = useState([]);
   const [english, setEnglish] = useState('');
@@ -322,29 +390,53 @@ function CreateListModal({ onClose, onSave }) {
 
     setGeneratingImage(true);
     try {
+      const apiKey = import.meta.env.VITE_STABILITY_API_KEY;
+      if (!apiKey) {
+        throw new Error('Stability AI key not configured. Check VITE_STABILITY_API_KEY in .env');
+      }
+
       // Use English word first, then fall back to Bahasa word
       const basePrompt = englishWord || bahasaWord;
-      console.log('Generating image with prompt:', basePrompt);
-      console.log('API URL:', import.meta.env.VITE_API_URL);
+      console.log('🎨 Generating image for:', basePrompt);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-image`, {
+      const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt: basePrompt,
-          customPrompt: customPrompt.trim() // Pass custom prompt if entered
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text_prompts: [
+            {
+              text: `A clear, simple illustration of ${basePrompt}. Simple, clean style, white background, centered, professional quality, suitable for children's learning materials.`,
+              weight: 1
+            }
+          ],
+          negative_prompts: [{ text: 'text, watermark, blurry, low quality, distorted', weight: -1 }],
+          steps: 30,
+          width: 1024,
+          height: 1024,
+          guidance_scale: 7,
+          seed: Math.floor(Math.random() * 1000000)
         })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate image');
+        const errorText = await response.text();
+        console.error('Stability API error:', response.status, errorText);
+        throw new Error(`Stability API error ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
       const data = await response.json();
-      setImageUrl(data.imageUrl);
-      setImagePreview(data.imageUrl);
-      alert('✅ Image generated successfully!');
+      
+      if (data.artifacts && data.artifacts[0]) {
+        const dataUrl = `data:image/png;base64,${data.artifacts[0].base64}`;
+        setImageUrl(dataUrl);
+        setImagePreview(dataUrl);
+        alert('✅ Image generated successfully!');
+      } else {
+        throw new Error('No image data in response');
+      }
     } catch (error) {
       console.error('Error generating image:', error);
       alert(`❌ Error: ${error.message}`);
@@ -446,12 +538,23 @@ function CreateListModal({ onClose, onSave }) {
 
     setSaving(true);
     try {
+      // Convert syllables array to string for Firestore compatibility
+      const wordsForFirestore = words.map(w => ({
+        word: w.word,
+        english: w.english,
+        translation: w.translation,
+        syllables: Array.isArray(w.syllables) ? w.syllables.join('-') : w.syllables,
+        imageUrl: w.imageUrl || '',
+        audioUrl: w.audioUrl || '',
+        pronunciation: w.pronunciation || ''
+      }));
+
       await addDoc(collection(db, 'lists'), {
         title: title.trim(),
         description: 'Teacher-created vocabulary list',
-        teacherId: 'demo-teacher',
+        teacherId: teacherId,
         learningArea: 'vocabulary',
-        words,
+        words: wordsForFirestore,
         createdAt: new Date().toISOString()
       });
       alert('✅ List saved successfully!');
@@ -767,7 +870,7 @@ function QuickAddModal({ onClose, onSave }) {
       const docRef = await addDoc(collection(db, 'lists'), {
         title: listName,
         description: 'Quick test vocabulary list for learning',
-        teacherId: 'demo-teacher',
+        teacherId: teacherId,
         learningArea: 'vocabulary',
         words: testWords,
         createdAt: new Date().toISOString(),
