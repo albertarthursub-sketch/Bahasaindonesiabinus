@@ -200,7 +200,7 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
         </div>
       ) : (
         <>
-          {/* Sentence Display with Audio */}
+          {/* Sentence Display with Audio - Hidden text but audio still works */}
           <div className="bg-white rounded-lg p-6 mb-6 border-2 border-green-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700">Listen to the sentence:</h3>
@@ -212,13 +212,14 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
                 <Volume2 size={24} className="text-blue-600" />
               </button>
             </div>
-            <p className="text-2xl font-bold text-green-700 text-center py-3 font-serif">
-              {sentence.text}
+            {/* Sentence text is hidden - students must unscramble words to see it */}
+            <p className="text-2xl font-bold text-gray-300 text-center py-3 font-serif">
+              ••• •••• ••••
             </p>
           </div>
 
-          {/* SPO Structure Info */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          {/* SPO Structure Info - Hidden during practice to prevent copying */}
+          <div className="grid grid-cols-3 gap-3 mb-6 opacity-20 pointer-events-none">
             <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
               <p className="text-xs font-semibold text-red-600 uppercase">Subject</p>
               <p className="text-sm font-bold text-red-700 mt-1">{sentence.subject}</p>
