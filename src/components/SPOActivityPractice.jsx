@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Volume2, CheckCircle, AlertCircle, Loader, ChevronRight } from 'lucide-react';
 import CorrectAnswerAnimation from './CorrectAnswerAnimation';
-import CompletionTrophy from './CompletionTrophy';
+import CompletionTrophy from './CompletionTrophySimple';
 
 const SPOActivityPractice = ({ activity, onComplete }) => {
   const navigate = useNavigate();
@@ -79,7 +79,11 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
   };
 
   const handleContinue = () => {
-    navigate('/student-home');
+    console.log('handleContinue called, navigating to /student-home');
+    setShowCompletion(false);
+    setTimeout(() => {
+      navigate('/student-home', { replace: true });
+    }, 300);
   };
 
   const speakSentence = () => {
