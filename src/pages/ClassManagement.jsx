@@ -3,6 +3,7 @@ import { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } 
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import StudentCodeCardPrinter from '../components/StudentCodeCardPrinter';
 
 function ClassManagement() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ function ClassManagement() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [editStudentName, setEditStudentName] = useState('');
   const [studentViewMode, setStudentViewMode] = useState('card');
+  const [showPrintCards, setShowPrintCards] = useState(false);
 
   useEffect(() => {
     // Check if teacher is authenticated
@@ -473,6 +475,16 @@ function ClassManagement() {
                       >
                         📋 List View
                       </button>
+                      <button
+                        onClick={() => setShowPrintCards(!showPrintCards)}
+                        className={`btn px-4 py-2 rounded-lg font-semibold transition-all ml-auto ${
+                          showPrintCards
+                            ? 'bg-green-500 text-white shadow-lg'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        🖨️ Print Codes
+                      </button>
                     </div>
 
                     {/* Card View */}
@@ -604,6 +616,17 @@ function ClassManagement() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Print Code Cards Section */}
+                    {showPrintCards && (
+                      <div className="mt-8 pt-8 border-t-2 border-gray-200">
+                        <StudentCodeCardPrinter
+                          classId={selectedClass}
+                          className={classes.find(c => c.id === selectedClass)?.name || 'Class'}
+                          students={classStudents}
+                        />
                       </div>
                     )}
                   </div>
