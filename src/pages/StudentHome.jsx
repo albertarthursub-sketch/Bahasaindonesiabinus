@@ -177,18 +177,10 @@ function StudentHome() {
                         {activity.difficulty} Level
                       </span>
                     </div>
-                    <p className="text-lg font-bold text-gray-800 mb-3">{activity.text}</p>
-                    <div className="bg-white p-3 rounded mb-3 text-sm">
-                      <p className="text-gray-600">
-                        <span className="font-semibold text-red-600">Subject:</span> {activity.subject}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-semibold text-yellow-600">Predicate:</span> {activity.predicate}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-semibold text-blue-600">Object:</span> {activity.object}
-                      </p>
-                    </div>
+                    <p className="text-lg font-bold text-gray-800 mb-2">{activity.title || 'SPO Activity'}</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      📚 <span className="font-semibold">{activity.totalQuestions || activity.questions?.length || 1} Question(s)</span>
+                    </p>
                     <button
                       onClick={() => setSelectedSPOActivity(activity)}
                       className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-bold py-2 rounded-lg transition"

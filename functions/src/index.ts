@@ -497,3 +497,106 @@ export const health = functions.https.onRequest((req, res) => {
     });
   });
 });
+
+// Cloud Function: Generate SPO sentences
+export const generateSPOSentences = functions.https.onCall(async (data, context) => {
+  try {
+    const { difficulty, count } = data;
+    const apiKey = process.env.CLAUDE_API_KEY;
+
+    if (!apiKey) {
+      throw new Error('CLAUDE_API_KEY not configured');
+    }
+
+    const prompts: Record<string, string> = {
+      easy: `Generate ${count} VERY SIMPLE Indonesian S-P-O sentences for beginners. Each sentence should have EXACTLY 3 words:
+- Subject (simple noun): animals, people, or common objects
+- Predicate (simple verb): eating, playing, running, jumping, sleeping
+- Object (simple noun): food or objects
+
+Requirements:
+- Only use most common beginner words
+- Keep sentences extremely simple (3 words only)
+- No complex grammar
+- Present tense only
+
+Format each as:
+SENTENCE: [Indonesian sentence]
+SUBJECT: [subject] ([English])
+PREDICATE: [verb] ([English])
+OBJECT: [object] ([English])
+
+Generate exactly ${count} sentences. Start with: SENTENCE 1:`,
+
+      moderate: `Generate ${count} Indonesian S-P-O sentences at intermediate level. Each sentence should have 4-5 words:
+- Subject: simple adjective + noun or just noun
+- Predicate: verb with optional adverb
+- Object: noun with optional adjective
+
+Requirements:
+- Use common vocabulary
+- Mix of verb types (action verbs, states)
+- 4-5 words per sentence
+- Present and simple past tenses
+
+Format each as:
+SENTENCE: [Indonesian sentence]
+SUBJECT: [subject] ([English])
+PREDICATE: [verb] ([English])
+OBJECT: [object] ([English])
+
+Generate exactly ${count} sentences. Start with: SENTENCE 1:`,
+
+      hard: `Generate ${count} Indonesian S-P-O sentences at advanced level. Each sentence should have 5-7 words:
+- Subject: adjective + noun or possessive structures
+- Predicate: verb with adverbs or auxiliary verbs
+- Object: adjective + noun or complex phrases
+
+Requirements:
+- Use intermediate vocabulary
+- Include various verb forms
+- 5-7 words per sentence
+- Multiple tenses (present, past, future)
+
+Format each as:
+SENTENCE: [Indonesian sentence]
+SUBJECT: [subject] ([English])
+PREDICATE: [verb] ([English])
+OBJECT: [object] ([English])
+
+Generate exactly ${count} sentences. Start with: SENTENCE 1:`
+    };
+
+    const prompt = prompts[difficulty] || prompts.moderate;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-1',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json() as any;
+      throw new Error(`Anthropic API error: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const result = await response.json() as any;
+    return {
+      text: result.content[0].text,
+      success: true,
+    };
+  } catch (error) {
+    console.error('Error generating SPO sentences:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate SPO sentences';
+    throw new functions.https.HttpsError('internal', errorMessage);
+  }
+});
+

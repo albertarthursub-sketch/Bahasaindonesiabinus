@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { Sparkles, Loader, Trash2, Copy, CheckCircle } from 'lucide-react';
 
 const SPOActivityGenerator = ({ teacherId, classId }) => {
@@ -108,34 +109,15 @@ Start with: SENTENCE 1:`
     setSelectedSentences([]);
 
     try {
-      const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-      if (!apiKey) {
-        alert('API key not configured');
-        setLoading(false);
-        return;
-      }
+      const functions = getFunctions();
+      const generateSPO = httpsCallable(functions, 'generateSPOSentences');
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: getPromptByDifficulty(difficulty) }],
-        }),
+      const result = await generateSPO({
+        difficulty,
+        count: 5,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || `API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const responseText = data.content[0].text;
+      const responseText = result.data.text;
 
       // Parse sentences
       const sentenceBlocks = responseText.split(/SENTENCE \d+:/);
@@ -186,19 +168,21 @@ Start with: SENTENCE 1:`
 
     try {
       setLoading(true);
-      const activitiesToSave = selectedSentences.map(idx => sentences[idx]);
+      const selectedQuestions = selectedSentences.map(idx => sentences[idx]);
 
-      for (const sentence of activitiesToSave) {
-        await addDoc(collection(db, 'spoActivities'), {
-          ...sentence,
-          classId,
-          teacherId,
-          assignedAt: new Date().toISOString(),
-          words: sentence.text.split(' '),
-        });
-      }
+      // Save all selected sentences as a SINGLE activity with multiple questions
+      await addDoc(collection(db, 'spoActivities'), {
+        title: `SPO ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Activity`,
+        classId,
+        teacherId,
+        difficulty,
+        assignedAt: new Date().toISOString(),
+        questions: selectedQuestions, // Array of question objects
+        totalQuestions: selectedQuestions.length,
+        createdAt: new Date().toISOString(),
+      });
 
-      setSuccessMessage(`✅ ${activitiesToSave.length} sentence(s) saved!`);
+      setSuccessMessage(`✅ Activity with ${selectedQuestions.length} question(s) saved!`);
       setTimeout(() => setSuccessMessage(''), 3000);
       setSentences([]);
       setSelectedSentences([]);
@@ -364,10 +348,13 @@ Start with: SENTENCE 1:`
               <div key={activity.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900 mb-2">{activity.text}</p>
-                    <div className="flex items-center gap-2 text-xs">
+                    <p className="font-semibold text-gray-900 mb-2">{activity.title || 'SPO Activity'}</p>
+                    <div className="flex items-center gap-3 text-xs mb-2">
                       <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded capitalize">
                         {activity.difficulty}
+                      </span>
+                      <span className="text-gray-500">
+                        📚 {activity.totalQuestions || activity.questions?.length || 1} Question(s)
                       </span>
                       <span className="text-gray-500">
                         {new Date(activity.assignedAt).toLocaleDateString()}
