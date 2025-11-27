@@ -8,6 +8,8 @@ export default function AssignActivityModal({ isOpen, list, classes, teacherId, 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  if (!isOpen || !list) return null;
+
   const handleAssign = async () => {
     if (!selectedClass) {
       setError('Please select a class');

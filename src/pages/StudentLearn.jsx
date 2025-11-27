@@ -4,6 +4,8 @@ import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { saveStudentProgress } from '../lib/firebaseStorage';
 import ImageVocabularyLearning from '../components/ImageVocabularyLearning';
+import CompletionTrophy from '../components/CompletionTrophy';
+import CorrectAnswerAnimation from '../components/CorrectAnswerAnimation';
 
 // Success sounds and messages
 const SUCCESS_MESSAGES = [
@@ -96,6 +98,7 @@ function StudentLearn() {
   const [placedSyllables, setPlacedSyllables] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
   const [selectedSyllable, setSelectedSyllable] = useState(null);
   const [completionTime, setCompletionTime] = useState(0);
   const [startTime, setStartTime] = useState(null);
@@ -237,6 +240,7 @@ function StudentLearn() {
       setStars(stars + earnedStars);
       const randomMessage = SUCCESS_MESSAGES[Math.floor(Math.random() * SUCCESS_MESSAGES.length)];
       setFeedback({ correct: true, stars: earnedStars, message: randomMessage });
+      setShowCorrectAnimation(true);
       
       playSuccessSound();
       playAudio(word.word || word.bahasa);
@@ -442,6 +446,10 @@ function StudentLearn() {
             </button>
           </div>
 
+          {showCorrectAnimation && (
+            <CorrectAnswerAnimation onComplete={() => setShowCorrectAnimation(false)} />
+          )}
+
           {feedback && (
             <div
               className={`p-8 rounded-2xl text-center shadow-2xl ${
@@ -504,156 +512,12 @@ function StudentLearn() {
 
       {/* Completion Screen */}
       {showCompletion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
-          <div className="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 rounded-2xl shadow-2xl w-full max-w-xl p-4 sm:p-6 text-center my-4 sm:my-0" style={{animation: 'bounce 0.8s ease-out'}}>
-            {/* Confetti */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
-              {[...Array(15)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute animate-pulse"
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `-20px`,
-                    opacity: 0.4,
-                    fontSize: `${25 + Math.random() * 25}px`,
-                    animation: `fall ${2 + Math.random() * 1}s linear forwards`,
-                    animationDelay: `${Math.random() * 0.5}s`
-                  }}
-                >
-                  {['🎉', '⭐', '🎊', '🏆', '👏', '🌟', '✨'][Math.floor(Math.random() * 7)]}
-                </div>
-              ))}
-            </div>
-
-            <style>{`
-              @keyframes fall {
-                to {
-                  transform: translateY(100vh) rotate(360deg);
-                  opacity: 0;
-                }
-              }
-            `}</style>
-
-            <div className="relative z-10">
-              {/* Trophy */}
-              <div className="text-7xl mb-2 animate-bounce">🏆</div>
-              
-              {/* Title */}
-              <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 mb-1">
-                Complete!
-              </h1>
-              
-              <p className="text-base sm:text-lg text-gray-700 font-semibold mb-3">
-                {student?.name} • {list.words.length} words
-              </p>
-
-              {/* Main Medal Card - More Compact */}
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-5 mb-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  {/* Medal */}
-                  <div className="text-center">
-                    {(() => {
-                      const accuracy = (stars / (list.words.length * 3)) * 100;
-                      const timePerWord = completionTime / list.words.length;
-                      
-                      // Determine medal based on accuracy AND speed
-                      let medal = '🥉'; // Bronze default
-                      let medalName = 'BRONZE';
-                      let medalColor = 'text-amber-700';
-                      
-                      if (accuracy >= 85 && timePerWord <= 30) {
-                        medal = '🥇';
-                        medalName = 'GOLD';
-                        medalColor = 'text-yellow-600';
-                      } else if (accuracy >= 70 && timePerWord <= 45) {
-                        medal = '🥈';
-                        medalName = 'SILVER';
-                        medalColor = 'text-gray-500';
-                      }
-                      
-                      return (
-                        <div>
-                          <div className="text-5xl sm:text-6xl mb-1 animate-bounce" style={{animationDelay: '0s'}}>{medal}</div>
-                          <p className={`font-black text-sm sm:text-base ${medalColor}`}>{medalName}</p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Stats - Compact */}
-                  <div className="flex-1 grid grid-cols-2 gap-2 text-left">
-                    {/* Accuracy */}
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2">
-                      <p className="text-xs text-gray-600 font-semibold">Accuracy</p>
-                      <p className="text-lg sm:text-xl font-black text-blue-600">
-                        {Math.round((stars / (list.words.length * 3)) * 100)}%
-                      </p>
-                    </div>
-
-                    {/* Time */}
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-2">
-                      <p className="text-xs text-gray-600 font-semibold">Time</p>
-                      <p className="text-lg sm:text-xl font-black text-purple-600">
-                        {Math.floor(completionTime / 60)}:{String(completionTime % 60).padStart(2, '0')}
-                      </p>
-                    </div>
-
-                    {/* Stars */}
-                    <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-2">
-                      <p className="text-xs text-gray-600 font-semibold">Stars</p>
-                      <p className="text-lg sm:text-xl font-black text-yellow-500">{stars}</p>
-                    </div>
-
-                    {/* Avg/Word */}
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2">
-                      <p className="text-xs text-gray-600 font-semibold">Avg/Word</p>
-                      <p className="text-lg sm:text-xl font-black text-green-600">
-                        {Math.round(completionTime / list.words.length)}s
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Message */}
-              <div className={`text-sm sm:text-base font-bold p-2 sm:p-3 rounded-lg mb-4 ${
-                (stars / (list.words.length * 3)) > 0.85
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : (stars / (list.words.length * 3)) > 0.6
-                  ? 'bg-gray-100 text-gray-800'
-                  : 'bg-amber-100 text-amber-800'
-              }`}>
-                {(stars / (list.words.length * 3)) > 0.85
-                  ? '🌟 You\'re a superstar!'
-                  : (stars / (list.words.length * 3)) > 0.6
-                  ? '👏 Great job! Keep it up!'
-                  : '💪 Good start! Try again!'}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 justify-center flex-wrap">
-                <button
-                  onClick={() => navigate('/student')}
-                  className="btn bg-blue-500 hover:bg-blue-600 text-white text-xs sm:text-sm py-2 sm:py-3 px-4 sm:px-6 hover:scale-105 transition-all shadow-lg font-bold rounded-lg"
-                >
-                  🏠 Home
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCompletion(false);
-                    setCurrentIndex(0);
-                    setStars(0);
-                    setStartTime(Date.now());
-                  }}
-                  className="btn bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm py-2 sm:py-3 px-4 sm:px-6 hover:scale-105 transition-all shadow-lg font-bold rounded-lg"
-                >
-                  🔄 Retry
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CompletionTrophy
+          accuracy={Math.round((stars / (list.words.length * 3)) * 100)}
+          timeSpent={completionTime}
+          wordCount={list.words.length}
+          onContinue={() => navigate('/student-home')}
+        />
       )}
     </div>
   );

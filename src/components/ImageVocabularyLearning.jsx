@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import CorrectAnswerAnimation from './CorrectAnswerAnimation';
+import CompletionTrophy from './CompletionTrophy';
 
 const ImageVocabularyLearning = ({ 
   words, 
@@ -12,6 +14,8 @@ const ImageVocabularyLearning = ({
   const [answered, setAnswered] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [playingAudio, setPlayingAudio] = useState(false);
+  const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
 
   const currentWord = words[currentIndex];
   const isLastWord = currentIndex === words.length - 1;
@@ -80,6 +84,7 @@ const ImageVocabularyLearning = ({
     
     if (isCorrect) {
       setScore(score + 1);
+      setShowCorrectAnimation(true);
       playSuccessSound();
     }
     setAnswered(true);
@@ -87,11 +92,12 @@ const ImageVocabularyLearning = ({
 
   const handleNext = () => {
     if (isLastWord) {
-      onComplete({ score, total: words.length });
+      setShowCompletion(true);
     } else {
       setCurrentIndex(currentIndex + 1);
       setAnswered(false);
       setFeedback(null);
+      setShowCorrectAnimation(false);
     }
   };
 
@@ -222,7 +228,20 @@ const ImageVocabularyLearning = ({
             </button>
           </div>
         )}
+
+        {showCorrectAnimation && (
+          <CorrectAnswerAnimation onComplete={() => setShowCorrectAnimation(false)} />
+        )}
       </div>
+
+      {showCompletion && (
+        <CompletionTrophy
+          accuracy={Math.round((score / words.length) * 100)}
+          timeSpent={0}
+          wordCount={words.length}
+          onContinue={() => onComplete({ score, total: words.length })}
+        />
+      )}
     </div>
   );
 };
