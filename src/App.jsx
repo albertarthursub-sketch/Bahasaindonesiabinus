@@ -12,6 +12,7 @@ import StudentLogin from './pages/StudentLogin';
 import StudentHome from './pages/StudentHome';
 import StudentLearn from './pages/StudentLearn';
 import SPOSentenceActivity from './pages/SPOSentenceActivity';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // Protected route component for teacher-only pages
 function ProtectedRoute({ element }) {
@@ -22,6 +23,7 @@ function ProtectedRoute({ element }) {
 function App() {
   return (
     <BrowserRouter>
+      <PWAInstallPrompt />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/setup" element={<FirebaseSetup />} />
