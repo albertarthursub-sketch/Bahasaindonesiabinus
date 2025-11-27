@@ -309,26 +309,26 @@ function StudentLearn() {
   const currentWord = list.words[currentIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4">
-      <div className="max-w-4xl mx-auto mb-6">
-        <div className="bg-gradient-to-r from-purple-400 to-pink-400 rounded-xl shadow-xl p-6 flex justify-between items-center text-white">
-          <div className="flex items-center gap-5">
-            <div className="text-8xl animate-bounce" style={{animationDelay: '0s'}}>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-2 md:p-4">
+      <div className="max-w-4xl mx-auto mb-4 md:mb-6">
+        <div className="bg-gradient-to-r from-purple-400 to-pink-400 rounded-xl shadow-xl p-4 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center text-white gap-4">
+          <div className="flex items-center gap-2 md:gap-5 w-full">
+            <div className="text-5xl md:text-8xl animate-bounce flex-shrink-0" style={{animationDelay: '0s'}}>
               {student?.avatar || '🦁'}
             </div>
-            <div>
-              <p className="text-sm font-semibold opacity-90 uppercase tracking-wide">Learning Time!</p>
-              <p className="text-3xl font-bold">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs md:text-sm font-semibold opacity-90 uppercase tracking-wide">Learning Time!</p>
+              <p className="text-xl md:text-3xl font-bold break-words">
                 Word {currentIndex + 1} of {list.words.length}
               </p>
-              <p className="text-lg opacity-90 font-semibold">Hi, {student?.name}! 👋</p>
+              <p className="text-sm md:text-lg opacity-90 font-semibold truncate">Hi, {student?.name}! 👋</p>
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-5xl animate-spin" style={{animationDuration: '3s'}}>
+          <div className="text-center flex-shrink-0">
+            <div className="text-3xl md:text-5xl animate-spin" style={{animationDuration: '3s'}}>
               ⭐
             </div>
-            <div className="text-4xl font-bold mt-2 animate-bounce">
+            <div className="text-2xl md:text-4xl font-bold mt-2 animate-bounce">
               {stars}
             </div>
           </div>
@@ -338,23 +338,23 @@ function StudentLearn() {
       <div className="max-w-4xl mx-auto">
         <div className="card">
           {/* Display Image if Available */}
-          <div className="mb-6 flex justify-center">
+          <div className="mb-4 md:mb-6 flex justify-center">
             {currentWord.imageUrl ? (
               <img 
                 src={currentWord.imageUrl} 
                 alt={currentWord.word} 
-                className="max-h-80 max-w-full object-contain rounded-lg shadow-lg"
+                className="max-h-48 md:max-h-80 max-w-full object-contain rounded-lg shadow-lg"
               />
             ) : (
-              <div className="w-full h-64 bg-gradient-to-br from-blue-200 to-purple-200 rounded-lg flex items-center justify-center text-6xl">
+              <div className="w-full h-48 md:h-64 bg-gradient-to-br from-blue-200 to-purple-200 rounded-lg flex items-center justify-center text-4xl md:text-6xl">
                 📚
               </div>
             )}
           </div>
 
-          <div className="text-center mb-6">
-            <p className="text-sm text-gray-600 mb-2">Translation:</p>
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">
+          <div className="text-center mb-4 md:mb-6">
+            <p className="text-xs md:text-sm text-gray-600 mb-2">Translation:</p>
+            <h2 className="text-2xl md:text-4xl font-bold text-gray-800 mb-3 md:mb-4 break-words">
               {currentWord.translation || currentWord.english}
             </h2>
             
@@ -415,14 +415,14 @@ function StudentLearn() {
           </div>
 
           {/* Available Syllables - TAP TO SELECT */}
-          <div className="mb-6">
-            <p className="font-semibold text-gray-700 mb-3">✨ Available Syllables (Tap to add):</p>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mb-4 md:mb-6">
+            <p className="font-semibold text-gray-700 mb-3 text-sm md:text-base">✨ Available Syllables (Tap to add):</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
               {availableSyllables.map(syllable => (
                 <button
                   key={syllable.id}
                   onClick={() => handleSyllableTap(syllable, 'available')}
-                  className="syllable syllable-available text-3xl font-bold cursor-pointer hover:scale-110 active:scale-95 transition-all py-6 px-6 rounded-lg shadow-md hover:shadow-lg"
+                  className="syllable syllable-available text-xl md:text-3xl font-bold cursor-pointer hover:scale-110 active:scale-95 transition-all py-4 md:py-6 px-4 md:px-6 rounded-lg shadow-md hover:shadow-lg min-h-16 md:min-h-20 touch-manipulation"
                 >
                   {syllable.text}
                 </button>
@@ -430,17 +430,17 @@ function StudentLearn() {
             </div>
           </div>
 
-          <div className="flex gap-3 mb-6">
+          <div className="flex gap-2 md:gap-3 mb-4 md:mb-6">
             <button
               onClick={initializeSyllables}
-              className="btn btn-gray flex-1"
+              className="btn btn-gray flex-1 text-sm md:text-base py-2 md:py-3"
             >
               🔄 Reset
             </button>
             <button
               onClick={checkAnswer}
               disabled={placedSyllables.length === 0}
-              className="btn btn-green flex-1"
+              className="btn btn-green flex-1 text-sm md:text-base py-2 md:py-3"
             >
               ✓ Check Answer
             </button>
@@ -452,7 +452,7 @@ function StudentLearn() {
 
           {feedback && (
             <div
-              className={`p-8 rounded-2xl text-center shadow-2xl ${
+              className={`p-4 md:p-8 rounded-2xl text-center shadow-2xl ${
                 feedback.correct
                   ? 'bg-gradient-to-br from-green-100 via-emerald-100 to-teal-100 border-4 border-green-400'
                   : 'bg-gradient-to-br from-yellow-100 to-orange-100 border-4 border-yellow-400'
@@ -460,38 +460,38 @@ function StudentLearn() {
               style={feedback.correct ? {animation: 'pulse 0.4s ease-in-out 2'} : {}}
             >
               {feedback.correct && (
-                <div className="mb-6 text-6xl flex justify-center gap-4">
+                <div className="mb-4 md:mb-6 text-4xl md:text-6xl flex justify-center gap-2 md:gap-4">
                   {['🎉', '✨', '🎊'].map((emoji, i) => (
                     <span key={i} className="inline-block animate-bounce" style={{animationDelay: `${i * 0.15}s`}}>{emoji}</span>
                   ))}
                 </div>
               )}
-              <div className={`text-8xl mb-4 inline-block ${feedback.correct ? 'animate-spin' : 'animate-pulse'}`} style={{animationDuration: feedback.correct ? '0.6s' : '1s'}}>
+              <div className={`text-5xl md:text-8xl mb-3 md:mb-4 inline-block ${feedback.correct ? 'animate-spin' : 'animate-pulse'}`} style={{animationDuration: feedback.correct ? '0.6s' : '1s'}}>
                 {feedback.correct ? '🎉' : '🤔'}
               </div>
-              <p className={`text-5xl font-black mb-3 ${feedback.correct ? 'text-green-700' : 'text-yellow-700'}`}>
+              <p className={`text-3xl md:text-5xl font-black mb-3 md:mb-4 ${feedback.correct ? 'text-green-700' : 'text-yellow-700'}`}>
                 {feedback.correct ? feedback.message : 'Try Again!'}
               </p>
               {feedback.correct && (
                 <>
-                  <div className="mb-8 p-6 bg-white rounded-xl shadow-md">
-                    <p className="text-gray-600 mb-3 font-semibold text-lg">You learned:</p>
-                    <div className="flex justify-center items-center gap-4 flex-wrap">
-                      <span className="text-3xl font-bold text-purple-600 bg-purple-50 px-6 py-3 rounded-lg">
+                  <div className="mb-4 md:mb-8 p-3 md:p-6 bg-white rounded-xl shadow-md">
+                    <p className="text-gray-600 mb-3 font-semibold text-sm md:text-lg">You learned:</p>
+                    <div className="flex justify-center items-center gap-2 md:gap-4 flex-wrap">
+                      <span className="text-xl md:text-3xl font-bold text-purple-600 bg-purple-50 px-3 md:px-6 py-2 md:py-3 rounded-lg break-words">
                         {currentWord.word || currentWord.bahasa}
                       </span>
-                      <span className="text-2xl font-bold text-gray-400">➜</span>
-                      <span className="text-3xl font-bold text-pink-600 bg-pink-50 px-6 py-3 rounded-lg">
+                      <span className="text-xl md:text-2xl font-bold text-gray-400">➜</span>
+                      <span className="text-xl md:text-3xl font-bold text-pink-600 bg-pink-50 px-3 md:px-6 py-2 md:py-3 rounded-lg break-words">
                         {currentWord.translation || currentWord.english}
                       </span>
                     </div>
                   </div>
-                  <div className="flex justify-center gap-3 mb-8 text-5xl">
+                  <div className="flex justify-center gap-2 md:gap-3 mb-6 md:mb-8 text-3xl md:text-5xl">
                     {[...Array(feedback.stars)].map((_, i) => (
                       <span key={i} className="inline-block animate-bounce" style={{animationDelay: `${i * 0.2}s`}}>⭐</span>
                     ))}
                   </div>
-                  <button onClick={nextWord} className="btn bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white text-lg py-4 px-10 hover:scale-110 transition-all shadow-lg font-bold rounded-xl">
+                  <button onClick={nextWord} className="btn bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white text-base md:text-lg py-3 md:py-4 px-6 md:px-10 hover:scale-110 transition-all shadow-lg font-bold rounded-xl w-full md:w-auto">
                     {currentIndex < list.words.length - 1 ? '▶️ Next Word →' : '🏆 Finish Learning! 🏆'}
                   </button>
                 </>

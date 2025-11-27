@@ -122,17 +122,17 @@ function StudentHome() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
-        <div className="flex justify-between items-center bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center gap-4">
-            <div className="text-6xl">{student.avatar}</div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white rounded-lg shadow-md p-4 md:p-6 gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="text-4xl md:text-6xl">{student.avatar}</div>
             <div>
-              <p className="text-sm text-gray-600">Welcome back!</p>
-              <h1 className="text-3xl font-bold text-gray-800">{student.name}</h1>
+              <p className="text-xs md:text-sm text-gray-600">Welcome back!</p>
+              <h1 className="text-lg md:text-3xl font-bold text-gray-800">{student.name}</h1>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition"
+            className="px-4 md:px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition text-sm md:text-base"
           >
             Logout
           </button>
@@ -141,19 +141,19 @@ function StudentHome() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">📚 Available Vocabulary Lists</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">📚 Available Vocabulary Lists</h2>
 
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-600 text-xl">Loading vocabulary lists...</p>
+            <p className="text-gray-600 text-lg md:text-xl">Loading vocabulary lists...</p>
           </div>
         ) : lists.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-md">
-            <p className="text-gray-600 text-xl mb-4">No vocabulary lists available yet</p>
-            <p className="text-gray-500">Ask your teacher to create some vocabulary lists!</p>
+            <p className="text-gray-600 text-lg md:text-xl mb-4">No vocabulary lists available yet</p>
+            <p className="text-gray-500 text-sm md:text-base">Ask your teacher to create some vocabulary lists!</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {lists.map(list => (
               <div key={list.id} className="bg-white rounded-lg shadow-lg hover:shadow-xl transition overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-400 to-purple-500 h-24 flex items-center justify-center">
@@ -186,8 +186,8 @@ function StudentHome() {
         {/* SPO Activities Section */}
         {spoActivities.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">✍️ Writing Practice Activities</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">✍️ Writing Practice Activities</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {spoActivities.map(activity => (
                 <div
                   key={activity.id}

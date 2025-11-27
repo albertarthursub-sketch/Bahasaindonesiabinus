@@ -115,16 +115,16 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
 
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-purple-700">SPO Writing Practice</h1>
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-purple-700">SPO Writing Practice</h1>
       </div>
 
-      <div className="mb-6 bg-white rounded-lg shadow p-4">
-        <div className="flex justify-between items-center mb-2">
-          <p className="text-sm font-semibold text-gray-700">
+      <div className="mb-4 md:mb-6 bg-white rounded-lg shadow p-3 md:p-4">
+        <div className="flex justify-between items-center mb-2 text-xs md:text-sm">
+          <p className="font-semibold text-gray-700">
             Question {currentQuestionIndex + 1} of {questions.length}
           </p>
-          <p className="text-sm font-semibold text-green-600">
+          <p className="font-semibold text-green-600">
             ✓ {completedQuestions.length}/{questions.length} completed
           </p>
         </div>
@@ -136,26 +136,26 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl shadow-lg p-6">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">🎯 Unscramble the Sentence</h2>
-          <p className="text-gray-600 text-sm">
+      <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl shadow-lg p-3 md:p-6">
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-1">🎯 Unscramble the Sentence</h2>
+          <p className="text-xs md:text-sm text-gray-600">
             Level: <span className="font-semibold capitalize">{activity.difficulty}</span>
           </p>
         </div>
 
-        <div className="bg-white rounded-lg p-6 mb-6 border-2 border-green-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Listen to the sentence:</h3>
+        <div className="bg-white rounded-lg p-3 md:p-6 mb-4 md:mb-6 border-2 border-green-200">
+          <div className="flex items-center justify-between mb-4 flex-col md:flex-row gap-2">
+            <h3 className="text-base md:text-lg font-semibold text-gray-700">Listen to the sentence:</h3>
             <button
               onClick={speakSentence}
-              className="p-2 bg-blue-100 hover:bg-blue-200 rounded-full transition-all"
+              className="p-2 bg-blue-100 hover:bg-blue-200 rounded-full transition-all min-w-12 h-12 flex items-center justify-center"
               title="Play pronunciation"
             >
               <Volume2 size={24} className="text-blue-600" />
             </button>
           </div>
-          <p className="text-2xl font-bold text-green-700 text-center py-4 font-serif">
+          <p className="text-xl md:text-2xl font-bold text-green-700 text-center py-3 md:py-4 font-serif break-words">
             ••• •••• ••••
           </p>
         </div>
@@ -175,14 +175,14 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
           </div>
         </div>
 
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">🔀 Unscramble the words:</h3>
+        <div className="mb-4 md:mb-6">
+          <h3 className="text-base md:text-lg font-semibold text-gray-700 mb-3">🔀 Unscramble the words:</h3>
           <div className="flex flex-wrap gap-2">
             {scrambledWords.map((word, index) => (
               <button
                 key={index}
                 onClick={() => toggleWord(word, index)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all transform ${
+                className={`px-3 md:px-4 py-2 md:py-2 rounded-lg font-semibold transition-all transform text-sm md:text-base min-h-10 md:min-h-12 ${
                   selectedWords.some(w => w.index === index)
                     ? 'bg-green-600 text-white scale-105 shadow-lg'
                     : 'bg-white text-gray-800 border-2 border-gray-300 hover:border-green-500 hover:shadow-md'
@@ -194,18 +194,18 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
           </div>
         </div>
 
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">Your sentence:</h3>
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-4 min-h-12 flex items-center">
-            <p className="text-lg font-serif text-gray-800">
-              {userSentence || <span className="text-gray-400">Click words above to build...</span>}
+        <div className="mb-4 md:mb-6">
+          <h3 className="text-base md:text-lg font-semibold text-gray-700 mb-3">Your sentence:</h3>
+          <div className="bg-white border-2 border-gray-300 rounded-lg p-3 md:p-4 min-h-12 md:min-h-16 flex items-center">
+            <p className="text-base md:text-lg font-serif text-gray-800 break-words">
+              {userSentence || <span className="text-gray-400 text-sm md:text-base">Click words above to build...</span>}
             </p>
           </div>
         </div>
 
         {feedback && (
           <div
-            className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+            className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg flex items-start gap-3 ${
               feedback.type === 'success'
                 ? 'bg-green-50 border-l-4 border-green-500'
                 : 'bg-red-50 border-l-4 border-red-500'
@@ -217,7 +217,7 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
               <AlertCircle className="text-red-600 mt-1 flex-shrink-0" size={20} />
             )}
             <p
-              className={`text-sm ${
+              className={`text-xs md:text-sm ${
                 feedback.type === 'success' ? 'text-green-800' : 'text-red-800'
               }`}
             >
@@ -226,17 +226,17 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
           </div>
         )}
 
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-2 md:gap-3 justify-center">
           <button
             onClick={clearSelection}
-            className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all font-semibold"
+            className="px-4 md:px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all font-semibold text-sm md:text-base"
           >
             Clear
           </button>
           <button
             onClick={checkAnswer}
             disabled={!userSentence.trim()}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold flex items-center gap-2"
+            className="px-4 md:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold text-sm md:text-base flex items-center gap-2"
           >
             Check Answer <ChevronRight size={18} />
           </button>
