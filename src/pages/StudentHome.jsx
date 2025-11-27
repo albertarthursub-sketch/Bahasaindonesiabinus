@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import SPOActivityPractice from '../components/SPOActivityPractice';
 
 function StudentHome() {
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [lists, setLists] = useState([]);
+  const [spoActivities, setSpoActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSPOActivity, setSelectedSPOActivity] = useState(null);
 
   useEffect(() => {
     const studentData = JSON.parse(sessionStorage.getItem('student'));
@@ -17,6 +20,7 @@ function StudentHome() {
     }
     setStudent(studentData);
     loadLists();
+    loadSPOActivities(studentData.classId);
   }, [navigate]);
 
   const loadLists = async () => {
@@ -35,6 +39,21 @@ function StudentHome() {
     }
   };
 
+  const loadSPOActivities = async (classId) => {
+    try {
+      const q = query(collection(db, 'spoActivities'), where('classId', '==', classId));
+      const snapshot = await getDocs(q);
+      const activities = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      console.log('✅ Loaded SPO activities:', activities);
+      setSpoActivities(activities);
+    } catch (error) {
+      console.error('Error loading SPO activities:', error);
+    }
+  };
+
   const handleStartLearning = (listId) => {
     navigate(`/learn/${listId}`);
   };
@@ -50,6 +69,27 @@ function StudentHome() {
 
   if (!student) {
     return null;
+  }
+
+  // Show SPO Activity modal if one is selected
+  if (selectedSPOActivity) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-100 to-blue-100 p-4">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={() => setSelectedSPOActivity(null)}
+            className="mb-6 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all"
+          >
+            ← Back to Home
+          </button>
+          <SPOActivityPractice
+            activityId={selectedSPOActivity.id}
+            activity={selectedSPOActivity}
+            onComplete={() => setSelectedSPOActivity(null)}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -111,15 +151,54 @@ function StudentHome() {
                   >
                     Start Learning 🚀
                   </button>
-                  <button
-                    onClick={() => handleStartSPOPractice(list.id, student.classId)}
-                    className="w-full mt-2 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-bold py-2 rounded-lg transition text-sm"
-                  >
-                    SPO Writing Practice ✍️
-                  </button>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* SPO Activities Section */}
+        {spoActivities.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-3xl font-bold text-gray-800 mb-6">✍️ Writing Practice Activities</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {spoActivities.map(activity => (
+                <div
+                  key={activity.id}
+                  onClick={() => setSelectedSPOActivity(activity)}
+                  className="bg-gradient-to-br from-green-50 to-teal-50 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer border-2 border-green-200 overflow-hidden"
+                >
+                  <div className="bg-gradient-to-r from-green-400 to-teal-500 h-24 flex items-center justify-center">
+                    <span className="text-5xl">✍️</span>
+                  </div>
+                  <div className="p-6">
+                    <div className="mb-3">
+                      <span className="inline-block px-3 py-1 bg-green-200 text-green-800 text-xs font-bold rounded-full capitalize">
+                        {activity.difficulty} Level
+                      </span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800 mb-3">{activity.text}</p>
+                    <div className="bg-white p-3 rounded mb-3 text-sm">
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-red-600">Subject:</span> {activity.subject}
+                      </p>
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-yellow-600">Predicate:</span> {activity.predicate}
+                      </p>
+                      <p className="text-gray-600">
+                        <span className="font-semibold text-blue-600">Object:</span> {activity.object}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedSPOActivity(activity)}
+                      className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-bold py-2 rounded-lg transition"
+                    >
+                      Start Practice 🎯
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -1,0 +1,218 @@
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, Volume2, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import CorrectAnswerAnimation from './CorrectAnswerAnimation';
+import CompletionTrophy from './CompletionTrophy';
+
+const SPOActivityPractice = ({ activityId, activity, onComplete }) => {
+  const [scrambledWords, setScrambledWords] = useState([]);
+  const [userSentence, setUserSentence] = useState('');
+  const [selectedWords, setSelectedWords] = useState([]);
+  const [feedback, setFeedback] = useState(null);
+  const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+
+  useEffect(() => {
+    if (activity && activity.text) {
+      const words = activity.text.split(' ');
+      const scrambled = [...words].sort(() => Math.random() - 0.5);
+      setScrambledWords(scrambled);
+    }
+  }, [activity]);
+
+  const toggleWord = (word, index) => {
+    const isSelected = selectedWords.some(w => w.index === index);
+    if (isSelected) {
+      setSelectedWords(selectedWords.filter(w => w.index !== index));
+      setUserSentence(
+        userSentence
+          .replace(word + ' ', '')
+          .replace(' ' + word, '')
+          .replace(word, '')
+      );
+    } else {
+      setSelectedWords([...selectedWords, { word, index }]);
+      setUserSentence(prev => (prev ? prev + ' ' + word : word));
+    }
+  };
+
+  const checkAnswer = () => {
+    setAttempts(attempts + 1);
+    const userFormatted = userSentence.trim().toLowerCase();
+    const correctFormatted = activity.text.trim().toLowerCase();
+
+    if (userFormatted === correctFormatted) {
+      setShowCorrectAnimation(true);
+      setFeedback({
+        type: 'success',
+        message: '✓ Perfect! You got it right!',
+      });
+
+      setTimeout(() => {
+        setShowCompletion(true);
+      }, 1500);
+    } else {
+      setFeedback({
+        type: 'error',
+        message: `Not quite right. Correct answer: ${activity.text}`,
+      });
+    }
+  };
+
+  const handleContinue = () => {
+    setShowCompletion(false);
+    if (onComplete) onComplete();
+  };
+
+  const speakSentence = () => {
+    if (activity && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(activity.text);
+      utterance.lang = 'id-ID';
+      speechSynthesis.speak(utterance);
+    }
+  };
+
+  const clearSelection = () => {
+    setUserSentence('');
+    setSelectedWords([]);
+    setFeedback(null);
+  };
+
+  if (!activity) {
+    return (
+      <div className="text-center py-12">
+        <Loader className="animate-spin mx-auto mb-4 text-purple-600" size={40} />
+        <p className="text-gray-600">Loading activity...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-2xl mx-auto bg-gradient-to-br from-green-50 to-blue-50 rounded-xl shadow-lg p-6">
+      {/* Title */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-1">🎯 SPO Practice Activity</h2>
+        <p className="text-gray-600 text-sm">
+          Level: <span className="font-semibold capitalize">{activity.difficulty}</span> | Attempt {attempts}
+        </p>
+      </div>
+
+      {/* Sentence Display with Audio */}
+      <div className="bg-white rounded-lg p-6 mb-6 border-2 border-green-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-700">Listen to the sentence:</h3>
+          <button
+            onClick={speakSentence}
+            className="p-2 bg-blue-100 hover:bg-blue-200 rounded-full transition-all"
+            title="Play pronunciation"
+          >
+            <Volume2 size={24} className="text-blue-600" />
+          </button>
+        </div>
+        <p className="text-2xl font-bold text-green-700 text-center py-4 font-serif">
+          {activity.text}
+        </p>
+      </div>
+
+      {/* SPO Structure */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+          <p className="text-xs font-semibold text-red-600 uppercase">Subject</p>
+          <p className="text-sm font-bold text-red-700 mt-1">{activity.subject}</p>
+        </div>
+        <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500">
+          <p className="text-xs font-semibold text-yellow-600 uppercase">Predicate</p>
+          <p className="text-sm font-bold text-yellow-700 mt-1">{activity.predicate}</p>
+        </div>
+        <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+          <p className="text-xs font-semibold text-blue-600 uppercase">Object</p>
+          <p className="text-sm font-bold text-blue-700 mt-1">{activity.object}</p>
+        </div>
+      </div>
+
+      {/* Scrambled Words */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-3">🔀 Unscramble the words:</h3>
+        <div className="flex flex-wrap gap-2">
+          {scrambledWords.map((word, index) => (
+            <button
+              key={index}
+              onClick={() => toggleWord(word, index)}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all transform ${
+                selectedWords.some(w => w.index === index)
+                  ? 'bg-green-600 text-white scale-105 shadow-lg'
+                  : 'bg-white text-gray-800 border-2 border-gray-300 hover:border-green-500 hover:shadow-md'
+              }`}
+            >
+              {word}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* User Input */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-3">Your sentence:</h3>
+        <div className="bg-white border-2 border-gray-300 rounded-lg p-4 min-h-12 flex items-center">
+          <p className="text-lg font-serif text-gray-800">
+            {userSentence || <span className="text-gray-400">Click words above to build...</span>}
+          </p>
+        </div>
+      </div>
+
+      {/* Feedback */}
+      {feedback && (
+        <div
+          className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+            feedback.type === 'success'
+              ? 'bg-green-50 border-l-4 border-green-500'
+              : 'bg-red-50 border-l-4 border-red-500'
+          }`}
+        >
+          {feedback.type === 'success' ? (
+            <CheckCircle className="text-green-600 mt-1 flex-shrink-0" size={20} />
+          ) : (
+            <AlertCircle className="text-red-600 mt-1 flex-shrink-0" size={20} />
+          )}
+          <p
+            className={`text-sm ${
+              feedback.type === 'success' ? 'text-green-800' : 'text-red-800'
+            }`}
+          >
+            {feedback.message}
+          </p>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={clearSelection}
+          className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all font-semibold"
+        >
+          Clear
+        </button>
+        <button
+          onClick={checkAnswer}
+          disabled={!userSentence.trim()}
+          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+        >
+          Check Answer
+        </button>
+      </div>
+
+      {/* Animations */}
+      {showCorrectAnimation && <CorrectAnswerAnimation onComplete={() => setShowCorrectAnimation(false)} />}
+      {showCompletion && (
+        <CompletionTrophy
+          accuracy={100}
+          timeSpent={`Attempt ${attempts}`}
+          wordCount={activity.text.split(' ').length}
+          onContinue={handleContinue}
+        />
+      )}
+    </div>
+  );
+};
+
+export default SPOActivityPractice;

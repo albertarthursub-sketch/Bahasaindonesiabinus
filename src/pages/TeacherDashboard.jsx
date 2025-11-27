@@ -7,6 +7,7 @@ import LearningModeSelector from '../components/LearningModeSelector';
 import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
 import AIVocabularyGenerator from '../components/AIVocabularyGenerator';
 import AssignActivityModal from '../components/AssignActivityModal';
+import SPOActivityGenerator from '../components/SPOActivityGenerator';
 
 function TeacherDashboard() {
   const navigate = useNavigate();
@@ -127,6 +128,12 @@ function TeacherDashboard() {
           >
             🏫 Classes ({students.length})
           </button>
+          <button
+            onClick={() => setView('spo')}
+            className={`btn ${view === 'spo' ? 'btn-green' : 'btn-gray'}`}
+          >
+            ✍️ SPO Activities
+          </button>
           <a href="/classes" className="btn btn-cyan">
             🏫 Manage Classes
           </a>
@@ -225,6 +232,36 @@ function TeacherDashboard() {
                 ))
               )}
             </div>
+          </div>
+        )}
+
+        {view === 'spo' && students.length > 0 && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">✍️ SPO Writing Practice Activities</h2>
+              <p className="text-gray-600 mb-6">
+                Create and assign Subject-Predicate-Object sentence building activities to your classes
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {students.map(cls => (
+                <div key={cls.id} className="bg-white rounded-lg shadow-lg p-6">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">🎓 {cls.name || cls.className}</h3>
+                  <SPOActivityGenerator teacherId={teacherId} classId={cls.id} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {view === 'spo' && students.length === 0 && (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-gray-500 text-lg mb-4">📭 No classes created</p>
+            <p className="text-gray-600 mb-6">You need to create a class first before creating SPO activities</p>
+            <a href="/classes" className="btn btn-blue inline-block">
+              🏫 Create a Class
+            </a>
           </div>
         )}
       </div>
