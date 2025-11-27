@@ -296,6 +296,20 @@ export const generateVocabularyWithClaude = functions.https.onRequest((req, res)
     }
 
     try {
+      // ✅ SECURITY: Verify user is authenticated via Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: Missing or invalid authentication token' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      try {
+        // Verify the Firebase ID token
+        await admin.auth().verifyIdToken(idToken);
+      } catch (error) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid authentication token' });
+      }
+
       const { theme, count } = req.body;
 
       if (!theme || !count) {
@@ -500,6 +514,14 @@ export const health = functions.https.onRequest((req, res) => {
 
 // Cloud Function: Generate SPO sentences
 export const generateSPOSentences = functions.https.onCall(async (data, context) => {
+  // ✅ SECURITY: Verify user is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'User must be authenticated to generate SPO sentences'
+    );
+  }
+
   try {
     const { difficulty, count } = data;
     const apiKey = process.env.CLAUDE_API_KEY;
