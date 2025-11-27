@@ -467,10 +467,16 @@ function CreateListModal({ onClose, onSave, teacherId }) {
 
     setGeneratingCategory(true);
     try {
-      console.log('API URL:', import.meta.env.VITE_API_URL);
-      console.log('Full URL:', `${import.meta.env.VITE_API_URL}/api/generate-category`);
+      const apiUrl = import.meta.env.VITE_API_URL;
+      console.log('API URL:', apiUrl);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-category`, {
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL environment variable not configured. Check your .env file.');
+      }
+      
+      console.log('Full URL:', `${apiUrl}/api/generate-category`);
+      
+      const response = await fetch(`${apiUrl}/api/generate-category`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: categoryInput.trim() })
@@ -496,10 +502,18 @@ function CreateListModal({ onClose, onSave, teacherId }) {
   };
 
   const generateImagesForWords = async (wordsList) => {
+    const apiUrl = import.meta.env.VITE_API_URL;
+    
+    if (!apiUrl) {
+      console.error('VITE_API_URL not configured');
+      alert('API configuration missing. Check your .env file for VITE_API_URL');
+      return wordsList;
+    }
+
     const updated = [...wordsList];
     for (let i = 0; i < updated.length; i++) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-image`, {
+        const response = await fetch(`${apiUrl}/api/generate-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
