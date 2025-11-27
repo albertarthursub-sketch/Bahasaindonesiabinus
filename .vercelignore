@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+*.md
+.git
+.gitignore
+debug.log
+dist
+server.js
+.firebase
+.firebaserc
+firebase.json
+functions
+images
+*.example
