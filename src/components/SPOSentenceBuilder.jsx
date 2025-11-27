@@ -146,7 +146,7 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
     } else {
       setFeedback({
         type: 'error',
-        message: `Not quite right. Correct answer: ${correctSentence.text}`,
+        message: `Not quite right. Try again!`,
       });
       setAccuracy(0);
     }

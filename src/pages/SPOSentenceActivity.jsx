@@ -47,20 +47,12 @@ const SPOSentenceActivity = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-100 to-blue-100 p-4">
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">🎯 SPO Writing Practice</h1>
-            <p className="text-gray-600">Master Subject-Predicate-Object sentence structure</p>
-            {listName && (
-              <p className="text-sm text-gray-500 mt-2">Vocabulary: <span className="font-semibold">{listName}</span></p>
-            )}
-          </div>
-          <button
-            onClick={handleReturnToClass}
-            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all"
-          >
-            ← Back
-          </button>
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">🎯 SPO Writing Practice</h1>
+          <p className="text-gray-600">Master Subject-Predicate-Object sentence structure</p>
+          {listName && (
+            <p className="text-sm text-gray-500 mt-2">Vocabulary: <span className="font-semibold">{listName}</span></p>
+          )}
         </div>
       </div>
 

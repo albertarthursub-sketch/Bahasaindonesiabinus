@@ -106,7 +106,12 @@ function StudentHome() {
           <SPOActivityPractice
             activityId={selectedSPOActivity.id}
             activity={selectedSPOActivity}
-            onComplete={() => setSelectedSPOActivity(null)}
+            onComplete={() => {
+              setSelectedSPOActivity(null);
+              setTimeout(() => {
+                navigate('/student-home', { replace: true });
+              }, 500);
+            }}
           />
         </div>
       </div>

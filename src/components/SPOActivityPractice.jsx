@@ -73,7 +73,7 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
     } else {
       setFeedback({
         type: 'error',
-        message: `Not quite right. Correct answer: ${currentQuestion.text}`,
+        message: `Not quite right. Try again!`,
       });
     }
   };
@@ -115,13 +115,7 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
 
   return (
     <div className="w-full">
-      <div className="mb-6 flex justify-between items-center">
-        <button
-          onClick={handleBackClick}
-          className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-all font-semibold"
-        >
-          ← Back to Home
-        </button>
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-purple-700">SPO Writing Practice</h1>
       </div>
 
@@ -162,11 +156,11 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
             </button>
           </div>
           <p className="text-2xl font-bold text-green-700 text-center py-4 font-serif">
-            {currentQuestion.text}
+            ••• •••• ••••
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6 opacity-20 pointer-events-none">
           <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
             <p className="text-xs font-semibold text-red-600 uppercase">Subject</p>
             <p className="text-sm font-bold text-red-700 mt-1">{currentQuestion.subject}</p>
