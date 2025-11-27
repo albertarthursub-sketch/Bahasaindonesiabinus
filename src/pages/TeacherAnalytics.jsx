@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import StudentAnalyticsCard from '../components/StudentAnalyticsCard';
+import AIAnalyticsSummary from '../components/AIAnalyticsSummary';
 
 function TeacherAnalytics() {
   const [classes, setClasses] = useState([]);
@@ -212,9 +214,22 @@ function TeacherAnalytics() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Overall Stats */}
+                {/* Enhanced Student Card with Level and Score */}
+                <StudentAnalyticsCard 
+                  studentName={students.find(s => s.id === selectedStudent)?.name || 'Student'}
+                  stats={stats}
+                />
+
+                {/* AI Analytics Summary */}
+                <AIAnalyticsSummary 
+                  studentName={students.find(s => s.id === selectedStudent)?.name || 'Student'}
+                  stats={stats}
+                  listStats={stats.listStats}
+                />
+
+                {/* Overall Stats - Kept for detailed breakdown */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
-                  <h3 className="text-2xl font-bold mb-4">Overall Performance</h3>
+                  <h3 className="text-2xl font-bold mb-4">Detailed Performance Breakdown</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white rounded-lg p-4">
                       <p className="text-sm text-gray-600">Success Rate</p>
