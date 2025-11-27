@@ -239,7 +239,11 @@ const ImageVocabularyLearning = ({
           accuracy={Math.round((score / words.length) * 100)}
           timeSpent={0}
           wordCount={words.length}
-          onContinue={() => onComplete({ score, total: words.length })}
+          onContinue={() => {
+            setTimeout(() => {
+              onComplete({ score, total: words.length });
+            }, 500);
+          }}
         />
       )}
     </div>

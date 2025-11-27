@@ -516,7 +516,12 @@ function StudentLearn() {
           accuracy={Math.round((stars / (list.words.length * 3)) * 100)}
           timeSpent={completionTime}
           wordCount={list.words.length}
-          onContinue={() => navigate('/student-home')}
+          onContinue={() => {
+            // Small delay to ensure state is properly saved, then navigate
+            setTimeout(() => {
+              navigate('/student-home', { replace: true });
+            }, 500);
+          }}
         />
       )}
     </div>

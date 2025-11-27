@@ -15,9 +15,11 @@ function StudentHome() {
   useEffect(() => {
     const studentData = JSON.parse(sessionStorage.getItem('student'));
     if (!studentData) {
+      console.warn('⚠️  No student data in session, redirecting to login');
       navigate('/student');
       return;
     }
+    console.log('✅ Student logged in:', studentData.name);
     setStudent(studentData);
     loadLists(studentData.classId);
     loadSPOActivities(studentData.classId);
