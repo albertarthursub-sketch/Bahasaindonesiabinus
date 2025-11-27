@@ -11,6 +11,7 @@ import TeacherResources from './pages/TeacherResources';
 import StudentLogin from './pages/StudentLogin';
 import StudentHome from './pages/StudentHome';
 import StudentLearn from './pages/StudentLearn';
+import SPOSentenceActivity from './pages/SPOSentenceActivity';
 
 // Protected route component for teacher-only pages
 function ProtectedRoute({ element }) {
@@ -40,6 +41,7 @@ function App() {
         <Route path="/student" element={<StudentLogin />} />
         <Route path="/student-home" element={<StudentHome />} />
         <Route path="/learn/:listId" element={<StudentLearn />} />
+        <Route path="/spo-practice/:classId/:listId" element={<SPOSentenceActivity />} />
       </Routes>
     </BrowserRouter>
   );

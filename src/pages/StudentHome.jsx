@@ -39,6 +39,10 @@ function StudentHome() {
     navigate(`/learn/${listId}`);
   };
 
+  const handleStartSPOPractice = (listId, classId) => {
+    navigate(`/spo-practice/${classId}/${listId}`);
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem('student');
     navigate('/student');
@@ -106,6 +110,12 @@ function StudentHome() {
                     className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 rounded-lg transition"
                   >
                     Start Learning 🚀
+                  </button>
+                  <button
+                    onClick={() => handleStartSPOPractice(list.id, student.classId)}
+                    className="w-full mt-2 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-bold py-2 rounded-lg transition text-sm"
+                  >
+                    SPO Writing Practice ✍️
                   </button>
                 </div>
               </div>
