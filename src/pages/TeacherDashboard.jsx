@@ -6,6 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import LearningModeSelector from '../components/LearningModeSelector';
 import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
 import AIVocabularyGenerator from '../components/AIVocabularyGenerator';
+import AssignActivityModal from '../components/AssignActivityModal';
 
 function TeacherDashboard() {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ function TeacherDashboard() {
   const [selectedMode, setSelectedMode] = useState(null);
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherId, setTeacherId] = useState('');
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedList, setSelectedList] = useState(null);
 
   useEffect(() => {
     // Check if teacher is authenticated
@@ -158,10 +161,21 @@ function TeacherDashboard() {
                     <p className="text-sm text-gray-600 mb-4">
                       {list.learningArea} • {list.words?.length || 0} words
                     </p>
-                    <div className="flex gap-2">
-                      <button className="btn btn-blue flex-1">Edit</button>
-                      <button onClick={() => deleteList(list.id)} className="btn btn-gray">
-                        🗑️
+                    <div className="flex gap-2 flex-col">
+                      <div className="flex gap-2">
+                        <button className="btn btn-blue flex-1">Edit</button>
+                        <button onClick={() => deleteList(list.id)} className="btn btn-gray">
+                          🗑️
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setSelectedList(list);
+                          setShowAssignModal(true);
+                        }}
+                        className="btn btn-green w-full"
+                      >
+                        📋 Assign to Class
                       </button>
                     </div>
                   </div>
@@ -964,6 +978,20 @@ function QuickAddModal({ onClose, onSave }) {
           </button>
         </div>
       </div>
+
+      <AssignActivityModal
+        isOpen={showAssignModal}
+        list={selectedList}
+        classes={students}
+        teacherId={teacherId}
+        onClose={() => {
+          setShowAssignModal(false);
+          setSelectedList(null);
+        }}
+        onAssignSuccess={() => {
+          // Refresh data if needed
+        }}
+      />
     </div>
   );
 }

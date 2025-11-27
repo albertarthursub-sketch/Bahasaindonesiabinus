@@ -62,7 +62,7 @@ function TeacherAuth() {
           navigate('/teacher');
         }, 1000);
       } else {
-        setError(data.error || 'Invalid email or code');
+        setError(data.error || 'Invalid code');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -80,7 +80,7 @@ function TeacherAuth() {
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">🔐</div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Teacher Login</h1>
-            <p className="text-gray-600">Verify with OTP</p>
+            <p className="text-gray-600">Enter name and OTP code</p>
           </div>
 
           {/* Error Message */}
@@ -97,12 +97,12 @@ function TeacherAuth() {
             </div>
           )}
 
-          {/* Login Form - Simple 2 boxes */}
+          {/* Login Form - Name and OTP */}
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Email Box */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                📧 Email Address
+                📧 Email
               </label>
               <input
                 type="email"
@@ -112,7 +112,6 @@ function TeacherAuth() {
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 disabled={loading}
               />
-              <p className="text-xs text-gray-500 mt-1">Must match the email that received your OTP</p>
             </div>
 
             {/* OTP Code Box */}
@@ -152,9 +151,9 @@ function TeacherAuth() {
           {/* Navigation */}
           <div className="mt-6 text-center space-y-3">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Need an OTP code?{' '}
               <a href="/teacher-signup" className="text-green-600 hover:text-green-700 font-bold">
-                Sign Up →
+                Request One →
               </a>
             </p>
             <a href="/" className="text-xs text-purple-600 hover:text-purple-700 font-semibold">

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { saveStudentProgress } from '../lib/firebaseStorage';
+import ImageVocabularyLearning from '../components/ImageVocabularyLearning';
 
 // Success sounds and messages
 const SUCCESS_MESSAGES = [
@@ -284,6 +285,21 @@ function StudentLearn() {
 
   if (!list || !list.words || list.words.length === 0) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  // Route based on learning mode
+  if (list.mode === 'image-vocabulary') {
+    return (
+      <ImageVocabularyLearning 
+        words={list.words} 
+        studentName={student?.name}
+        studentAvatar={student?.avatar}
+        listTitle={list.title}
+        onComplete={() => {
+          navigate('/student');
+        }}
+      />
+    );
   }
 
   const currentWord = list.words[currentIndex];

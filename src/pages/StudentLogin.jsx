@@ -54,15 +54,8 @@ function StudentLogin() {
         avatar: selectedAvatar
       }));
 
-      const listsSnapshot = await getDocs(collection(db, 'lists'));
-      
-      if (listsSnapshot.empty) {
-        alert('No vocabulary lists available yet. Ask your teacher to create some!');
-        return;
-      }
-
-      const firstList = listsSnapshot.docs[0];
-      navigate(`/learn/${firstList.id}`);
+      // Navigate to home page to select a vocabulary list
+      navigate('/student-home');
     } catch (err) {
       setError('Error starting session. Please try again.');
       console.error(err);

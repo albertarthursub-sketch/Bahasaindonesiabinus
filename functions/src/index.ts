@@ -29,14 +29,15 @@ const getEmailTransporter = (): nodemailer.Transporter | null => {
     console.log(`📧 Email Config: user=${emailUser}, password=${emailPass ? '***' + emailPass.slice(-4) : 'NOT SET'}`);
     
     return nodemailer.createTransport({
-      service: 'gmail',
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
       auth: {
         user: emailUser,
         pass: emailPass
-      }
+      },
+      connectionTimeout: 10000,
+      socketTimeout: 10000
     });
   } catch (error) {
     console.error('Email transporter initialization error:', error);
@@ -70,20 +71,23 @@ const sendOTPEmail = async (email: string, otp: string): Promise<boolean> => {
     };
 
     if (process.env.TEACHER_EMAIL_USER && process.env.TEACHER_EMAIL_PASSWORD) {
+      console.log(`🔧 Creating transporter with email: ${process.env.TEACHER_EMAIL_USER}`);
       const transporter = getEmailTransporter();
       if (transporter) {
+        console.log(`📧 Attempting to send email to ${email} with code ${otp}`);
         await transporter.sendMail(mailOptions);
-        console.log(`OTP email sent to ${email}`);
+        console.log(`✅ OTP email sent successfully to ${email}`);
         return true;
       }
-      console.warn('Email transporter not available');
+      console.warn('❌ Email transporter not available');
       return false;
     } else {
       console.log(`[MOCK MODE] OTP for ${email}: ${otp}`);
-      return true;
+      console.warn('⚠️  TEACHER_EMAIL_USER or TEACHER_EMAIL_PASSWORD not set');
+      return false;
     }
   } catch (error) {
-    console.error('Error sending OTP email:', error);
+    console.error('❌ Error sending OTP email:', error);
     return false;
   }
 };
@@ -98,18 +102,22 @@ export const sendOTP = functions.https.onRequest(async (req, res) => {
       }
 
       const { email } = req.body;
+      console.log(`📬 sendOTP received request for email: ${email}`);
 
       if (!email || !email.includes('@')) {
+        console.warn(`⚠️  Invalid email: ${email}`);
         res.status(400).json({ error: 'Valid email required' });
         return;
       }
 
       const otp = generateOTP();
       const expiryTime = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000);
+      console.log(`🔐 Generated OTP: ${otp}, expires at ${expiryTime}`);
 
       // Store OTP in Firestore
       try {
-        await db.collection('teacherOTPs').add({
+        console.log(`💾 Storing OTP in Firestore for ${email}`);
+        const docRef = await db.collection('teacherOTPs').add({
           email: email.toLowerCase(),
           otp: otp,
           expiryTime: admin.firestore.Timestamp.fromDate(expiryTime),
@@ -117,26 +125,29 @@ export const sendOTP = functions.https.onRequest(async (req, res) => {
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           attempts: 0
         });
+        console.log(`✅ OTP stored successfully in Firestore: ${docRef.id}`);
       } catch (dbError) {
-        console.warn('Firestore error:', dbError);
-        res.status(500).json({ error: 'Database error' });
+        console.error('❌ Firestore error:', dbError);
+        res.status(500).json({ error: 'Database error', details: dbError });
         return;
       }
 
       const emailSent = await sendOTPEmail(email, otp);
 
       if (emailSent) {
+        console.log(`✅ sendOTP success for ${email}`);
         res.status(200).json({
           success: true,
           message: 'OTP sent to your email',
           mockMode: !process.env.TEACHER_EMAIL_USER
         });
       } else {
+        console.error(`❌ Email failed to send for ${email}`);
         res.status(500).json({ error: 'Failed to send OTP' });
       }
     } catch (error) {
-      console.error('Send OTP error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error('❌ Send OTP error:', error);
+      res.status(500).json({ error: 'Internal server error', details: error });
     }
   });
 });
@@ -187,6 +198,32 @@ export const verifyOTP = functions.https.onRequest(async (req, res) => {
           verified: true,
           verifiedAt: admin.firestore.FieldValue.serverTimestamp()
         });
+
+        // Create or update teacher record in 'teachers' collection
+        try {
+          const teacherRef = db.collection('teachers').doc(email.toLowerCase());
+          const teacherDoc = await teacherRef.get();
+          
+          if (!teacherDoc.exists) {
+            // New teacher - create record
+            await teacherRef.set({
+              email: email.toLowerCase(),
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+              status: 'active'
+            });
+            console.log(`✅ New teacher record created for ${email}`);
+          } else {
+            // Existing teacher - update last login
+            await teacherRef.update({
+              lastLogin: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`✅ Teacher login updated for ${email}`);
+          }
+        } catch (teacherError) {
+          console.warn('Error creating/updating teacher record:', teacherError);
+          // Don't fail the request if teacher record creation fails
+        }
 
         // Create custom JWT token using Firebase Admin SDK
         const customToken = await admin.auth().createCustomToken(email.toLowerCase());
@@ -250,6 +287,205 @@ export const cleanupExpiredOTPs = functions.pubsub
       return { error: 'Cleanup failed' };
     }
   });
+
+// Cloud Function: Generate vocabulary with Claude
+export const generateVocabularyWithClaude = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+      const { theme, count } = req.body;
+
+      if (!theme || !count) {
+        return res.status(400).json({ error: 'Missing theme or count' });
+      }
+
+      const claudeApiKey = process.env.CLAUDE_API_KEY;
+      if (!claudeApiKey) {
+        return res.status(500).json({ error: 'Claude API key not configured' });
+      }
+
+      // Call Claude API to generate vocabulary
+      const prompt = `Generate exactly ${count} vocabulary items for learning Indonesian about the theme: "${theme}".
+
+Return ONLY a valid JSON array with exactly this format, no other text:
+[
+  {"bahasa": "word in indonesian", "english": "english translation"},
+  {"bahasa": "word in indonesian", "english": "english translation"}
+]
+
+Requirements:
+- Each item must have exactly "bahasa" and "english" fields
+- All ${count} items must be related to the theme: ${theme}
+- Use simple, common words suitable for children
+- No duplicates
+- Return valid JSON only, no markdown formatting or extra text`;
+
+      console.log('🤖 Calling Claude API with theme:', theme);
+
+      const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': claudeApiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-1',
+          max_tokens: 1024,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        })
+      });
+
+      if (!claudeResponse.ok) {
+        const errorText = await claudeResponse.text();
+        console.error('Claude API error:', claudeResponse.status, errorText);
+        throw new Error(`Claude API error: ${claudeResponse.status}`);
+      }
+
+      const claudeData: any = await claudeResponse.json();
+      console.log('Claude response:', claudeData);
+
+      // Parse Claude's response
+      let vocabularyItems: any[] = [];
+      
+      if (claudeData.content && claudeData.content[0] && claudeData.content[0].text) {
+        const responseText = claudeData.content[0].text;
+        console.log('Claude text response:', responseText);
+        
+        // Try to extract JSON from the response
+        try {
+          // Try direct JSON parse first
+          vocabularyItems = JSON.parse(responseText);
+        } catch (e) {
+          // Try extracting JSON from markdown code blocks
+          const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            vocabularyItems = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Could not parse Claude response as JSON');
+          }
+        }
+      }
+
+      if (!Array.isArray(vocabularyItems) || vocabularyItems.length === 0) {
+        throw new Error('Claude did not return valid vocabulary array');
+      }
+
+      console.log(`✅ Generated ${vocabularyItems.length} items for theme "${theme}":`, vocabularyItems);
+
+      // Create options for each item (3 options: 1 correct + 2 random)
+      const itemsWithOptions = vocabularyItems.slice(0, count).map((item: any, idx: number) => {
+        const otherWords = vocabularyItems
+          .filter((_: any, i: number) => i !== idx)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 2)
+          .map((w: any) => w.bahasa);
+
+        const options = [item.bahasa, ...otherWords].sort(() => Math.random() - 0.5);
+
+        return {
+          bahasa: item.bahasa,
+          english: item.english,
+          options: options,
+          correctAnswer: item.bahasa,
+          imageUrl: null
+        };
+      });
+
+      res.status(200).json({ success: true, items: itemsWithOptions });
+    } catch (error: any) {
+      console.error('Error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate vocabulary' });
+    }
+  });
+});
+
+// Helper function to generate image with Stability AI
+async function generateImageWithStability(word: string, english: string): Promise<string | null> {
+  try {
+    const stabilityKey = process.env.STABILITY_API_KEY;
+    if (!stabilityKey) {
+      console.error('Stability API key not configured');
+      return null;
+    }
+
+    const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stabilityKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text_prompts: [
+          {
+            text: `A clear, simple illustration of a ${word} (${english}). Simple, clean style, white background, centered, professional quality, suitable for children's learning materials.`,
+            weight: 1
+          }
+        ],
+        negative_prompts: [
+          {
+            text: 'text, watermark, blurry, low quality, distorted, complex, busy',
+            weight: -1
+          }
+        ],
+        steps: 30,
+        width: 1024,
+        height: 1024,
+        guidance_scale: 7,
+        seed: Math.floor(Math.random() * 1000000)
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Stability API error:', errorData);
+      return null;
+    }
+
+    const data = await response.json() as any;
+    
+    if (data.artifacts && data.artifacts[0]) {
+      const base64Image = data.artifacts[0].base64;
+      
+      // Upload to Firebase Storage using Admin SDK
+      const bucket = admin.storage().bucket();
+      const fileName = `ai-vocab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
+      const file = bucket.file(`vocabularies/${fileName}`);
+      
+      // Convert base64 to Buffer for Firebase Admin SDK
+      const buffer = Buffer.from(base64Image, 'base64');
+      
+      await file.save(buffer, {
+        metadata: {
+          contentType: 'image/png'
+        }
+      });
+
+      // Generate download URL
+      const [url] = await file.getSignedUrl({
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + 365 * 24 * 60 * 60 * 1000 // 1 year
+      });
+
+      console.log(`✅ Image generated and uploaded for ${word}`);
+      return url;
+    }
+    
+    return null;
+  } catch (err) {
+    console.error('Error generating image with Stability:', err);
+    return null;
+  }
+}
 
 // Cloud Function: Health check
 export const health = functions.https.onRequest((req, res) => {

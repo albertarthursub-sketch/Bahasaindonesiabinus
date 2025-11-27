@@ -3,13 +3,13 @@ import Home from './pages/Home';
 import FirebaseSetup from './pages/FirebaseSetup';
 import AdminCleanup from './pages/AdminCleanup';
 import TestFirebase from './pages/TestFirebase';
-import TeacherAuth from './pages/TeacherAuth';
-import TeacherSignUp from './pages/TeacherSignUp';
+import TeacherLoginGoogle from './pages/TeacherLoginGoogle';
 import TeacherDashboard from './pages/TeacherDashboard';
 import ClassManagement from './pages/ClassManagement';
 import TeacherAnalytics from './pages/TeacherAnalytics';
 import TeacherResources from './pages/TeacherResources';
 import StudentLogin from './pages/StudentLogin';
+import StudentHome from './pages/StudentHome';
 import StudentLearn from './pages/StudentLearn';
 
 // Protected route component for teacher-only pages
@@ -28,8 +28,7 @@ function App() {
         <Route path="/test" element={<TestFirebase />} />
         
         {/* Teacher Authentication */}
-        <Route path="/teacher-login" element={<TeacherAuth />} />
-        <Route path="/teacher-signup" element={<TeacherSignUp />} />
+        <Route path="/teacher-login" element={<TeacherLoginGoogle />} />
         
         {/* Protected Teacher Routes */}
         <Route path="/teacher" element={<ProtectedRoute element={<TeacherDashboard />} />} />
@@ -39,6 +38,7 @@ function App() {
         
         {/* Student Routes (public) */}
         <Route path="/student" element={<StudentLogin />} />
+        <Route path="/student-home" element={<StudentHome />} />
         <Route path="/learn/:listId" element={<StudentLearn />} />
       </Routes>
     </BrowserRouter>
