@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 function ClassManagement() {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
+  const [teacherId, setTeacherId] = useState('');
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -27,13 +28,24 @@ function ClassManagement() {
   const [studentViewMode, setStudentViewMode] = useState('card');
 
   useEffect(() => {
-    loadClasses();
-  }, []);
+    // Check if teacher is authenticated
+    const email = sessionStorage.getItem('teacherEmail');
+    const token = sessionStorage.getItem('authToken');
+    
+    if (!token || !email) {
+      navigate('/teacher-login');
+      return;
+    }
+    
+    setTeacherId(token); // Use token as teacher ID (Firebase UID)
+    loadClasses(token);
+  }, [navigate]);
 
-  const loadClasses = async () => {
+  const loadClasses = async (teacherId) => {
     try {
-      const classesRef = collection(db, 'classes');
-      const snapshot = await getDocs(classesRef);
+      // Load only classes created by this teacher
+      const q = query(collection(db, 'classes'), where('teacherId', '==', teacherId));
+      const snapshot = await getDocs(q);
       const classesData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -72,6 +84,7 @@ function ClassManagement() {
       await addDoc(collection(db, 'classes'), {
         name: className.trim(),
         gradeLevel,
+        teacherId: teacherId,
         createdAt: new Date().toISOString(),
         studentCount: 0
       });
@@ -80,7 +93,7 @@ function ClassManagement() {
       setClassName('');
       setGradeLevel('Grade 1');
       setShowCreateClass(false);
-      loadClasses();
+      loadClasses(teacherId);
     } catch (error) {
       console.error('Error creating class:', error);
       alert('Error creating class');
@@ -115,7 +128,7 @@ function ClassManagement() {
           await updateDoc(doc(db, 'classes', selectedClass), {
             studentCount: newCount
           });
-          loadClasses();
+          loadClasses(teacherId);
         }
       } catch (error) {
         console.error('Error deleting student:', error);
@@ -205,7 +218,7 @@ function ClassManagement() {
       setStudentName('');
       setStudentCode('');
       setShowAddStudent(false);
-      loadClasses();
+      loadClasses(teacherId);
       loadClassStudents(selectedClass);
     } catch (error) {
       console.error('Error adding student:', error);
@@ -289,7 +302,7 @@ function ClassManagement() {
       setImportedData([]);
       setShowBulkImport(false);
       setImportFile(null);
-      loadClasses();
+      loadClasses(teacherId);
       loadClassStudents(selectedClass);
     } catch (error) {
       console.error('Error importing students:', error);
@@ -334,7 +347,7 @@ function ClassManagement() {
       alert(`✅ Successfully imported ${added} students!`);
       setImportText('');
       setShowImportText(false);
-      loadClasses();
+      loadClasses(teacherId);
       loadClassStudents(selectedClass);
     } catch (error) {
       console.error('Error importing students:', error);

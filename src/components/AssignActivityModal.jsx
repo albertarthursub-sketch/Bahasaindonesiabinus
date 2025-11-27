@@ -34,10 +34,14 @@ export default function AssignActivityModal({ isOpen, list, classes, teacherId, 
         return;
       }
 
+      // Get the selected class name for reference
+      const selectedClassData = classes.find(c => c.id === selectedClass);
+
       // Add assignment
       await addDoc(assignmentsRef, {
         listId: list.id,
         classId: selectedClass,
+        className: selectedClassData?.name || 'Unknown',
         teacherId: teacherId,
         assignedAt: serverTimestamp(),
         listTitle: list.title
@@ -91,11 +95,15 @@ export default function AssignActivityModal({ isOpen, list, classes, teacherId, 
                 className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Choose a class...</option>
-                {classes.map(cls => (
-                  <option key={cls.code} value={cls.code}>
-                    {cls.name} ({cls.code})
-                  </option>
-                ))}
+                {classes && classes.length > 0 ? (
+                  classes.map(cls => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} {cls.gradeLevel && `(${cls.gradeLevel})`}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No classes available</option>
+                )}
               </select>
             </div>
 
