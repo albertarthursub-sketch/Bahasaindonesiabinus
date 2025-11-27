@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import SPOActivityPractice from '../components/SPOActivityPractice';
 
 function StudentHome() {
@@ -19,18 +19,37 @@ function StudentHome() {
       return;
     }
     setStudent(studentData);
-    loadLists();
+    loadLists(studentData.classId);
     loadSPOActivities(studentData.classId);
   }, [navigate]);
 
-  const loadLists = async () => {
+  const loadLists = async (classId) => {
     try {
-      const listsSnapshot = await getDocs(collection(db, 'lists'));
-      const loadedLists = listsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log('✅ Loaded vocabulary lists:', loadedLists);
+      // CRITICAL FIX: Load only lists assigned to this class, not all lists in database
+      const assignmentsQuery = query(
+        collection(db, 'assignments'),
+        where('classId', '==', classId),
+        where('isActive', '==', true)
+      );
+      const assignmentsSnapshot = await getDocs(assignmentsQuery);
+      const listIds = assignmentsSnapshot.docs.map(doc => doc.data().listId);
+      
+      // Now load the actual list documents using getDoc (more efficient)
+      const loadedLists = [];
+      for (const listId of listIds) {
+        try {
+          const listDoc = await getDoc(doc(db, 'lists', listId));
+          if (listDoc.exists()) {
+            loadedLists.push({
+              id: listDoc.id,
+              ...listDoc.data()
+            });
+          }
+        } catch (error) {
+          console.error(`Error loading list ${listId}:`, error);
+        }
+      }
+      console.log('✅ Loaded vocabulary lists for class:', loadedLists);
       setLists(loadedLists);
     } catch (error) {
       console.error('Error loading lists:', error);

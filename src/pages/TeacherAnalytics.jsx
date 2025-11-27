@@ -12,15 +12,25 @@ function TeacherAnalytics() {
   const [studentProgress, setStudentProgress] = useState(null);
   const [lists, setLists] = useState({});
   const [loading, setLoading] = useState(true);
+  const [teacherId, setTeacherId] = useState(null);
 
   useEffect(() => {
-    loadClasses();
-    loadLists();
+    // Get teacher ID from sessionStorage
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      console.error('Teacher authentication not found in session');
+      return;
+    }
+    setTeacherId(token);
+    loadClasses(token);
+    loadLists(token);
   }, []);
 
-  const loadClasses = async () => {
+  const loadClasses = async (teacherId) => {
     try {
-      const snapshot = await getDocs(collection(db, 'classes'));
+      // CRITICAL FIX: Filter classes by current teacher's ID
+      const q = query(collection(db, 'classes'), where('teacherId', '==', teacherId));
+      const snapshot = await getDocs(q);
       setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       console.error('Error loading classes:', error);
@@ -40,9 +50,11 @@ function TeacherAnalytics() {
     }
   };
 
-  const loadLists = async () => {
+  const loadLists = async (teacherId) => {
     try {
-      const snapshot = await getDocs(collection(db, 'lists'));
+      // CRITICAL FIX: Filter lists by current teacher's ID
+      const q = query(collection(db, 'lists'), where('teacherId', '==', teacherId));
+      const snapshot = await getDocs(q);
       const listsMap = {};
       snapshot.docs.forEach(doc => {
         listsMap[doc.id] = { id: doc.id, ...doc.data() };
