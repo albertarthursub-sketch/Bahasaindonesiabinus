@@ -161,6 +161,7 @@ Start with: SENTENCE 1:`
   };
 
   const saveSelectedSentences = async () => {
+    console.log('saveSelectedSentences called, selectedSentences:', selectedSentences);
     if (selectedSentences.length === 0) {
       alert('Please select at least one sentence');
       return;
@@ -169,6 +170,7 @@ Start with: SENTENCE 1:`
     try {
       setLoading(true);
       const selectedQuestions = selectedSentences.map(idx => sentences[idx]);
+      console.log('selectedQuestions:', selectedQuestions);
 
       // Save all selected sentences as a SINGLE activity with multiple questions
       await addDoc(collection(db, 'spoActivities'), {
@@ -187,9 +189,10 @@ Start with: SENTENCE 1:`
       setSentences([]);
       setSelectedSentences([]);
       await loadExistingActivities();
+      console.log('Activity saved successfully');
     } catch (error) {
       console.error('Error saving sentences:', error);
-      alert('Error saving sentences');
+      alert('Error saving sentences: ' + error.message);
     } finally {
       setLoading(false);
     }
