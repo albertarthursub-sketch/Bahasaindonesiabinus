@@ -596,67 +596,85 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
     }
 
     setSaving(true);
+    
     try {
-      // Upload images to Cloud Storage and get URLs
-      const wordsForFirestore = await Promise.all(
-        words.map(async (w) => {
-          let imageUrl = '';
+      // Create a timeout promise that rejects after 30 seconds
+      const savePromise = new Promise(async (resolve, reject) => {
+        try {
+          // Upload images to Cloud Storage and get URLs
+          const wordsForFirestore = await Promise.all(
+            words.map(async (w) => {
+              let imageUrl = '';
 
-          // If image is a data URL (base64), upload it to Cloud Storage
-          if (w.imageUrl && w.imageUrl.startsWith('data:')) {
-            try {
-              const blob = await fetch(w.imageUrl).then(res => res.blob());
-              const fileName = `vocabulary/${Date.now()}-${w.word || 'image'}.png`;
-              const storageRef = ref(storage, fileName);
-              await uploadBytes(storageRef, blob);
-              imageUrl = await getDownloadURL(storageRef);
-              console.log(`✅ Uploaded image for ${w.word} to Cloud Storage: ${imageUrl}`);
-            } catch (err) {
-              console.error(`Error uploading image for ${w.word}:`, err);
-              // Continue without image if upload fails
-            }
-          } else if (w.imageUrl) {
-            imageUrl = w.imageUrl;
+              // If image is a data URL (base64), upload it to Cloud Storage
+              if (w.imageUrl && w.imageUrl.startsWith('data:')) {
+                try {
+                  const blob = await fetch(w.imageUrl).then(res => res.blob());
+                  const fileName = `vocabulary/${Date.now()}-${w.word || 'image'}.png`;
+                  const storageRef = ref(storage, fileName);
+                  await uploadBytes(storageRef, blob);
+                  imageUrl = await getDownloadURL(storageRef);
+                  console.log(`✅ Uploaded image for ${w.word} to Cloud Storage: ${imageUrl}`);
+                } catch (err) {
+                  console.error(`Error uploading image for ${w.word}:`, err);
+                  // Continue without image if upload fails
+                }
+              } else if (w.imageUrl) {
+                imageUrl = w.imageUrl;
+              }
+
+              return {
+                word: w.word || '',
+                english: w.english || '',
+                translation: w.translation || '',
+                syllables: Array.isArray(w.syllables) ? w.syllables.join('-') : (w.syllables || ''),
+                imageUrl: imageUrl || '',
+                audioUrl: w.audioUrl ? w.audioUrl.substring(0, 500) : '',
+                pronunciation: w.pronunciation ? w.pronunciation.substring(0, 500) : ''
+              };
+            })
+          );
+
+          console.log('📤 Saving list with words:', wordsForFirestore);
+
+          // Create the list
+          const listRef = await addDoc(collection(db, 'lists'), {
+            title: title.trim(),
+            description: 'Teacher-created vocabulary list',
+            teacherId: teacherId,
+            learningArea: 'vocabulary',
+            words: wordsForFirestore,
+            createdAt: new Date().toISOString()
+          });
+
+          // Create assignments for selected classes
+          const assignmentsCollection = collection(db, 'assignments');
+          for (const classId of selectedClasses) {
+            const selectedClassData = classes.find(c => c.id === classId);
+            await addDoc(assignmentsCollection, {
+              listId: listRef.id,
+              classId: classId,
+              className: selectedClassData?.name || selectedClassData?.className || 'Unknown',
+              teacherId: teacherId,
+              assignedAt: new Date().toISOString(),
+              listTitle: title.trim()
+            });
+            console.log(`✅ Assigned list to class: ${selectedClassData?.name || classId}`);
           }
 
-          return {
-            word: w.word || '',
-            english: w.english || '',
-            translation: w.translation || '',
-            syllables: Array.isArray(w.syllables) ? w.syllables.join('-') : (w.syllables || ''),
-            imageUrl: imageUrl || '',
-            audioUrl: w.audioUrl ? w.audioUrl.substring(0, 500) : '',
-            pronunciation: w.pronunciation ? w.pronunciation.substring(0, 500) : ''
-          };
-        })
-      );
-
-      console.log('📤 Saving list with words:', wordsForFirestore);
-
-      // Create the list
-      const listRef = await addDoc(collection(db, 'lists'), {
-        title: title.trim(),
-        description: 'Teacher-created vocabulary list',
-        teacherId: teacherId,
-        learningArea: 'vocabulary',
-        words: wordsForFirestore,
-        createdAt: new Date().toISOString()
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       });
 
-      // Create assignments for selected classes
-      const assignmentsCollection = collection(db, 'assignments');
-      for (const classId of selectedClasses) {
-        const selectedClassData = classes.find(c => c.id === classId);
-        await addDoc(assignmentsCollection, {
-          listId: listRef.id,
-          classId: classId,
-          className: selectedClassData?.name || selectedClassData?.className || 'Unknown',
-          teacherId: teacherId,
-          assignedAt: new Date().toISOString(),
-          listTitle: title.trim()
-        });
-        console.log(`✅ Assigned list to class: ${selectedClassData?.name || classId}`);
-      }
+      // Race the promise against a 30-second timeout
+      await Promise.race([
+        savePromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Save operation timed out (30s). Please check your internet connection and try again.')), 30000)
+        )
+      ]);
 
       alert(`✅ List saved${selectedClasses.length > 0 ? ` and assigned to ${selectedClasses.length} class(es)` : ''}!`);
       onSave();
@@ -665,8 +683,9 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
       console.error('❌ Error saving list:', error);
       console.error('Error details:', error.message);
       alert(`Error saving list: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (

@@ -27,14 +27,20 @@ function StudentHome() {
 
   const loadLists = async (classId) => {
     try {
-      // CRITICAL FIX: Load only lists assigned to this class, not all lists in database
+      // Load only lists assigned to this class
       const assignmentsQuery = query(
         collection(db, 'assignments'),
-        where('classId', '==', classId),
-        where('isActive', '==', true)
+        where('classId', '==', classId)
       );
       const assignmentsSnapshot = await getDocs(assignmentsQuery);
       const listIds = assignmentsSnapshot.docs.map(doc => doc.data().listId);
+      
+      if (listIds.length === 0) {
+        console.log('ℹ️ No assignments found for this class');
+        setLists([]);
+        setLoading(false);
+        return;
+      }
       
       // Now load the actual list documents using getDoc (more efficient)
       const loadedLists = [];
