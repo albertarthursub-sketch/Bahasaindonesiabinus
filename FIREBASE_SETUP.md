@@ -1,6 +1,137 @@
-# Firebase Cloud Functions Setup for Bahasa Learning Platform
+# Firebase Setup Guide for Bahasa Learning Platform
 
-This document explains how to set up and deploy Firebase Cloud Functions for OTP authentication.
+## CRITICAL: App Registration & OAuth Configuration
+
+### 🚨 Issue: "Auth pop-up blocked" on iPad/Chrome & Other Devices
+
+This error occurs when:
+1. **App is NOT registered in Firebase Console**
+2. **Unauthorized redirect URIs** in OAuth settings
+3. **Google OAuth consent screen** not properly configured
+4. **Pop-up blockers** on Safari/browsers (especially mobile)
+
+---
+
+## ✅ PART 1: Firebase App Registration
+
+### A. Go to Firebase Console
+1. Open: https://console.firebase.google.com/
+2. Select your project: **Bahasaindonesiabinus** (or your project name)
+3. Click the **Web App** icon (</> icon) in the project overview
+
+### B. Register a New Web App
+1. Click **"Add app"** → Select **Web** (</> icon)
+2. App name: `Bahasa Learning - Web`
+3. Click **"Register app"**
+
+### C. Copy Your Firebase Config
+Firebase will show you a config object. Verify these match your `.env` file:
+```
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=1:...:web:...
+```
+
+---
+
+## ✅ PART 2: Configure Google OAuth Consent Screen
+
+### A. Enable Google Sign-In API
+1. Go to: https://console.cloud.google.com/apis/dashboard
+2. Click **"+ ENABLE APIS AND SERVICES"**
+3. Search for: **"Google+ API"** or **"Identity Platform"**
+4. Click **Enable**
+
+### B. Set Up OAuth Consent Screen
+1. Go to: **APIs & Services** → **OAuth consent screen**
+2. Choose: **External** (for testing/development)
+3. Click **Create**
+
+**Fill in the form:**
+- **App name:** Bahasa Learning Platform
+- **User support email:** your-email@gmail.com
+- **Developer contact:** your-email@gmail.com
+- Click **Save and Continue**
+
+### C. Add Scopes
+1. Click **"Add or Remove Scopes"**
+2. Add: `email`, `profile`, `openid`
+3. Click **Update** → **Save and Continue**
+
+### D. Add Test Users (CRITICAL!)
+1. Click **"Add Users"**
+2. Add all test email addresses:
+   - Your Gmail
+   - iPad Gmail account
+   - Any other test accounts
+3. Click **Save and Continue**
+
+---
+
+## ✅ PART 3: Configure Authorized Redirect URIs
+
+### A. Find Your OAuth Client
+1. Go to: **APIs & Services** → **Credentials**
+2. Click on **OAuth 2.0 Client ID** (Web application)
+
+### B. Add All Redirect URIs
+**Development (Local):**
+```
+http://localhost:3000
+http://localhost:5173
+http://127.0.0.1:3000
+http://127.0.0.1:5173
+```
+
+**Local Network (iPad Testing):**
+```
+http://192.168.1.x:3000
+http://192.168.1.x:5173
+```
+(Replace 192.168.1.x with your computer IP - run `ipconfig` on Windows)
+
+**Production (Vercel):**
+```
+https://your-app-name.vercel.app
+https://your-app-name.vercel.app/
+```
+
+3. Click **Save**
+
+---
+
+## ✅ PART 4: Enable Firebase Auth Methods
+
+1. Go to **Firebase Console** → **Authentication** → **Sign-in method**
+2. **Enable Google** - Select your support email
+3. **Enable Email/Password** 
+4. Click **Save**
+
+---
+
+## ✅ PART 5: Test on Different Devices
+
+**On Laptop:**
+```
+http://localhost:3000
+```
+
+**On iPad (same WiFi):**
+1. Get your computer IP: `ipconfig` (Windows) or `ifconfig` (Mac)
+2. On iPad open: `http://YOUR-COMPUTER-IP:3000`
+
+**On iPad (Vercel):**
+- Open your Vercel URL
+- Make sure it's in Authorized Redirect URIs
+
+---
+
+## Cloud Functions Setup (Optional)
+
+---
 
 ## Prerequisites
 

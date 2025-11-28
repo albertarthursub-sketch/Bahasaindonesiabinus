@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 function TeacherLoginGoogle() {
@@ -130,7 +130,26 @@ function TeacherLoginGoogle() {
     setLoading(true);
 
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      let result;
+      
+      try {
+        // Try popup first (works on desktop and most tablets)
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupError) {
+        // If popup is blocked, try redirect instead (better for mobile/Safari)
+        console.warn('Pop-up blocked or failed, using redirect:', popupError.code);
+        
+        if (popupError.code === 'auth/popup-blocked' || 
+            popupError.code === 'auth/popup-closed-by-user' ||
+            popupError.message?.includes('popup')) {
+          setMessage('Opening login page...');
+          await signInWithRedirect(auth, googleProvider);
+          return; // Redirect will handle the rest
+        } else {
+          throw popupError; // Re-throw other errors
+        }
+      }
+
       const user = result.user;
 
       // Create or get teacher document
@@ -166,7 +185,7 @@ function TeacherLoginGoogle() {
       }, 1000);
     } catch (err) {
       console.error('Google sign in error:', err);
-      setError(err.message || 'Google sign in failed');
+      setError(err.message || 'Google sign in failed. Please try again or use email login.');
     } finally {
       setLoading(false);
     }
