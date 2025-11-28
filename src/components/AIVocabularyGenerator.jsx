@@ -3,7 +3,7 @@ import { db, storage } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
+const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => {
   // Step states
   const [step, setStep] = useState(1); // 1: Input, 2: Build items
   const [listTitle, setListTitle] = useState('');
@@ -11,6 +11,7 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
   const [numItems, setNumItems] = useState('5');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedClasses, setSelectedClasses] = useState([]);
   
   // Items being built sequentially
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
@@ -245,7 +246,7 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
 
       console.log('📤 Saving AI-generated list with words:', wordsForFirestore);
 
-      await addDoc(collection(db, 'lists'), {
+      const listDoc = await addDoc(collection(db, 'lists'), {
         title: listTitle,
         description: `Auto-generated vocabulary list about ${theme}`,
         learningArea: 'image-vocabulary',
@@ -256,6 +257,21 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
         generatedByAI: true,
         theme: theme
       });
+
+      // Create assignments for selected classes
+      if (selectedClasses.length > 0) {
+        const assignmentsPromises = selectedClasses.map(classId =>
+          addDoc(collection(db, 'assignments'), {
+            listId: listDoc.id,
+            classId: classId,
+            teacherId: teacherId,
+            assignedAt: new Date().toISOString(),
+            dueDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+          })
+        );
+        await Promise.all(assignmentsPromises);
+        console.log('✅ Assignments created for', selectedClasses.length, 'classes');
+      }
 
       console.log('✅ AI-generated vocabulary list saved!');
       onSave();
@@ -333,6 +349,33 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId }) => {
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
               />
             </div>
+
+            {classes.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  🎓 Assign to Classes (Optional)
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-50 p-3 rounded-lg border-2 border-gray-300">
+                  {classes.map((classItem) => (
+                    <label key={classItem.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedClasses.includes(classItem.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedClasses([...selectedClasses, classItem.id]);
+                          } else {
+                            setSelectedClasses(selectedClasses.filter(id => id !== classItem.id));
+                          }
+                        }}
+                        className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                      />
+                      <span className="text-sm text-gray-800 font-medium">{classItem.name || classItem.className}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"

@@ -309,6 +309,7 @@ function TeacherDashboard() {
             loadLists(teacherId);
           }}
           teacherId={teacherId}
+          classes={students}
         />
       )}
     </div>
