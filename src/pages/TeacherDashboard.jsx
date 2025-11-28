@@ -175,15 +175,6 @@ function TeacherDashboard() {
                           🗑️
                         </button>
                       </div>
-                      <button 
-                        onClick={() => {
-                          setSelectedList(list);
-                          setShowAssignModal(true);
-                        }}
-                        className="btn btn-green w-full"
-                      >
-                        📋 Assign to Class
-                      </button>
                     </div>
                   </div>
                 ))}
@@ -293,9 +284,10 @@ function TeacherDashboard() {
           onClose={() => setShowCreateList(false)}
           onSave={() => {
             setShowCreateList(false);
-            loadLists();
+            loadLists(teacherId);
           }}
           teacherId={teacherId}
+          classes={students}
         />
       )}
 
@@ -323,7 +315,7 @@ function TeacherDashboard() {
   );
 }
 
-function CreateListModal({ onClose, onSave, teacherId }) {
+function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
   const [title, setTitle] = useState('');
   const [words, setWords] = useState([]);
   const [english, setEnglish] = useState('');
@@ -344,6 +336,7 @@ function CreateListModal({ onClose, onSave, teacherId }) {
   const [generatedWords, setGeneratedWords] = useState([]);
   const [editingWordIndex, setEditingWordIndex] = useState(null);
   const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
+  const [selectedClasses, setSelectedClasses] = useState([]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -640,7 +633,8 @@ function CreateListModal({ onClose, onSave, teacherId }) {
 
       console.log('📤 Saving list with words:', wordsForFirestore);
 
-      await addDoc(collection(db, 'lists'), {
+      // Create the list
+      const listRef = await addDoc(collection(db, 'lists'), {
         title: title.trim(),
         description: 'Teacher-created vocabulary list',
         teacherId: teacherId,
@@ -649,7 +643,22 @@ function CreateListModal({ onClose, onSave, teacherId }) {
         createdAt: new Date().toISOString()
       });
 
-      alert('✅ List saved successfully!');
+      // Create assignments for selected classes
+      const assignmentsCollection = collection(db, 'assignments');
+      for (const classId of selectedClasses) {
+        const selectedClassData = classes.find(c => c.id === classId);
+        await addDoc(assignmentsCollection, {
+          listId: listRef.id,
+          classId: classId,
+          className: selectedClassData?.name || selectedClassData?.className || 'Unknown',
+          teacherId: teacherId,
+          assignedAt: new Date().toISOString(),
+          listTitle: title.trim()
+        });
+        console.log(`✅ Assigned list to class: ${selectedClassData?.name || classId}`);
+      }
+
+      alert(`✅ List saved${selectedClasses.length > 0 ? ` and assigned to ${selectedClasses.length} class(es)` : ''}!`);
       onSave();
       onClose();
     } catch (error) {
@@ -687,6 +696,42 @@ function CreateListModal({ onClose, onSave, teacherId }) {
             disabled={saving}
           />
         </div>
+
+            {/* Class Selection */}
+            {classes && classes.length > 0 && (
+              <div className="mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  📚 Assign to Classes (Optional)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {classes.map(cls => (
+                    <label key={cls.id} className="flex items-center gap-2 cursor-pointer p-2 hover:bg-green-100 rounded transition">
+                      <input
+                        type="checkbox"
+                        checked={selectedClasses.includes(cls.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedClasses([...selectedClasses, cls.id]);
+                          } else {
+                            setSelectedClasses(selectedClasses.filter(id => id !== cls.id));
+                          }
+                        }}
+                        className="w-4 h-4 cursor-pointer"
+                        disabled={saving}
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        {cls.name || cls.className} ({cls.studentCount || 0} students)
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {selectedClasses.length > 0 && (
+                  <div className="mt-2 text-xs text-green-700 font-semibold">
+                    ✓ Assigned to {selectedClasses.length} class{selectedClasses.length !== 1 ? 'es' : ''}
+                  </div>
+                )}
+              </div>
+            )}
 
         {/* Add Word Section */}
         <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-5 mb-6">
