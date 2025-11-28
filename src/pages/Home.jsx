@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import AnimatedLogo from '../components/AnimatedLogo';
 
 function Home() {
   return (
@@ -9,7 +10,10 @@ function Home() {
       <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
       <div className="max-w-3xl w-full relative z-10">
-        {/* Main Heading - No Logo */}
+        {/* Animated Logo */}
+        <AnimatedLogo />
+
+        {/* Main Heading */}
         <div className="text-center mb-6 md:mb-8 animate-fadeInDown animation-delay-200">
           <h1 className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-blue-200 to-purple-300 mb-1 md:mb-2 drop-shadow-lg">
             Bahasa Indonesia Department
