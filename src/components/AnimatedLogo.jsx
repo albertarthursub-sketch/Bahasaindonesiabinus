@@ -1,5 +1,4 @@
 import React from 'react';
-import binusLogo from '../images/Logo-BINUS.png';
 
 function AnimatedLogo() {
   return (
@@ -13,7 +12,7 @@ function AnimatedLogo() {
           {/* Logo Image */}
           <div className="relative">
             <img
-              src={binusLogo}
+              src="/Logo-BINUS.png"
               alt="BINUS Logo"
               className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 filter drop-shadow-2xl transform hover:scale-110 transition-transform duration-300"
             />
