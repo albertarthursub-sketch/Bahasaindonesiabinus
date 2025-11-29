@@ -14,6 +14,7 @@ function TeacherResources() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingResourceId, setEditingResourceId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -62,13 +63,27 @@ function TeacherResources() {
         .map(tag => tag.trim())
         .filter(tag => tag);
 
-      await saveTeacherResource(
-        formData.title,
-        formData.type,
-        formData.content,
-        formData.listId || null,
-        tags
-      );
+      if (editingResourceId) {
+        // Update existing resource
+        await updateTeacherResource(editingResourceId, {
+          title: formData.title,
+          type: formData.type,
+          content: formData.content,
+          listId: formData.listId || null,
+          tags: tags
+        });
+        console.log('✅ Resource updated successfully');
+      } else {
+        // Create new resource
+        await saveTeacherResource(
+          formData.title,
+          formData.type,
+          formData.content,
+          formData.listId || null,
+          tags
+        );
+        console.log('✅ Resource created successfully');
+      }
 
       setFormData({
         title: '',
@@ -77,9 +92,10 @@ function TeacherResources() {
         listId: '',
         tags: ''
       });
+      setEditingResourceId(null);
       setShowCreateModal(false);
       loadResources();
-      alert('Resource saved successfully!');
+      alert(editingResourceId ? 'Resource updated successfully!' : 'Resource saved successfully!');
     } catch (error) {
       console.error('Error saving resource:', error);
       alert('Error saving resource');
@@ -97,6 +113,30 @@ function TeacherResources() {
       console.error('Error deleting resource:', error);
       alert('Error deleting resource');
     }
+  };
+
+  const handleEditResource = (resource) => {
+    setFormData({
+      title: resource.title,
+      type: resource.type,
+      content: resource.content,
+      listId: resource.listId || '',
+      tags: resource.tags ? resource.tags.join(', ') : ''
+    });
+    setEditingResourceId(resource.id);
+    setShowCreateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setEditingResourceId(null);
+    setFormData({
+      title: '',
+      type: 'lesson_plan',
+      content: '',
+      listId: '',
+      tags: ''
+    });
   };
 
   const filteredResources = resources.filter(resource => {
@@ -240,8 +280,8 @@ function TeacherResources() {
                   {new Date(resource.createdAt).toLocaleDateString()}
                 </div>
 
-                <button className="mt-3 btn btn-blue w-full text-sm">
-                  View & Edit
+                <button className="mt-3 btn btn-blue w-full text-sm" onClick={() => handleEditResource(resource)}>
+                  ✏️ View & Edit
                 </button>
               </div>
             ))}
@@ -253,7 +293,9 @@ function TeacherResources() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-xl max-w-2xl w-full my-8 p-6">
-            <h2 className="text-2xl font-bold mb-6">Create New Resource</h2>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingResourceId ? '✏️ Edit Resource' : 'Create New Resource'}
+            </h2>
 
             <div className="space-y-4">
               <div>
@@ -325,7 +367,7 @@ function TeacherResources() {
 
               <div className="flex gap-3 pt-4">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCloseModal}
                   className="btn btn-gray flex-1"
                 >
                   Cancel
@@ -334,7 +376,7 @@ function TeacherResources() {
                   onClick={handleSaveResource}
                   className="btn btn-blue flex-1"
                 >
-                  Save Resource
+                  {editingResourceId ? 'Update Resource' : 'Save Resource'}
                 </button>
               </div>
             </div>
