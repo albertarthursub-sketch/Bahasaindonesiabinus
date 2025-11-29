@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, storage } from '../firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import LearningModeSelector from '../components/LearningModeSelector';
 import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
@@ -24,6 +24,7 @@ function TeacherDashboard() {
   const [teacherId, setTeacherId] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedList, setSelectedList] = useState(null);
+  const [editingListId, setEditingListId] = useState(null);
 
   useEffect(() => {
     // Check if teacher is authenticated
@@ -67,6 +68,17 @@ function TeacherDashboard() {
       setShowImageVocab(true);
     } else {
       // Show traditional syllable mode
+      setShowCreateList(true);
+    }
+  };
+
+  const handleEditList = (list) => {
+    setEditingListId(list.id);
+    setSelectedMode(list.mode || 'syllable');
+    
+    if (list.mode === 'image-vocabulary') {
+      setShowImageVocab(true);
+    } else {
       setShowCreateList(true);
     }
   };
@@ -170,7 +182,7 @@ function TeacherDashboard() {
                     </p>
                     <div className="flex gap-2 flex-col">
                       <div className="flex gap-2">
-                        <button className="btn btn-blue flex-1">Edit</button>
+                        <button onClick={() => handleEditList(list)} className="btn btn-blue flex-1">Edit</button>
                         <button onClick={() => deleteList(list.id)} className="btn btn-gray">
                           🗑️
                         </button>
@@ -281,13 +293,19 @@ function TeacherDashboard() {
 
       {showCreateList && (
         <CreateListModal
-          onClose={() => setShowCreateList(false)}
+          onClose={() => {
+            setShowCreateList(false);
+            setEditingListId(null);
+          }}
           onSave={() => {
             setShowCreateList(false);
+            setEditingListId(null);
             loadLists(teacherId);
           }}
           teacherId={teacherId}
           classes={students}
+          editingListId={editingListId}
+          listToEdit={editingListId ? lists.find(l => l.id === editingListId) : null}
         />
       )}
 
@@ -316,7 +334,7 @@ function TeacherDashboard() {
   );
 }
 
-function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
+function CreateListModal({ onClose, onSave, teacherId, classes = [], editingListId = null, listToEdit = null }) {
   const [title, setTitle] = useState('');
   const [words, setWords] = useState([]);
   const [english, setEnglish] = useState('');
@@ -338,6 +356,15 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
   const [editingWordIndex, setEditingWordIndex] = useState(null);
   const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
   const [selectedClasses, setSelectedClasses] = useState([]);
+
+  // Load list data when editing
+  useEffect(() => {
+    if (listToEdit && editingListId) {
+      setTitle(listToEdit.title || '');
+      setWords(listToEdit.words || []);
+      console.log('✅ Loaded list for editing:', listToEdit.title);
+    }
+  }, [listToEdit, editingListId]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -638,29 +665,41 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
 
           console.log('📤 Saving list with words:', wordsForFirestore);
 
-          // Create the list
-          const listRef = await addDoc(collection(db, 'lists'), {
-            title: title.trim(),
-            description: 'Teacher-created vocabulary list',
-            teacherId: teacherId,
-            learningArea: 'vocabulary',
-            words: wordsForFirestore,
-            createdAt: new Date().toISOString()
-          });
-
-          // Create assignments for selected classes
-          const assignmentsCollection = collection(db, 'assignments');
-          for (const classId of selectedClasses) {
-            const selectedClassData = classes.find(c => c.id === classId);
-            await addDoc(assignmentsCollection, {
-              listId: listRef.id,
-              classId: classId,
-              className: selectedClassData?.name || selectedClassData?.className || 'Unknown',
-              teacherId: teacherId,
-              assignedAt: new Date().toISOString(),
-              listTitle: title.trim()
+          // Create or update the list
+          if (editingListId) {
+            // Update existing list
+            await updateDoc(doc(db, 'lists', editingListId), {
+              title: title.trim(),
+              description: 'Teacher-created vocabulary list',
+              words: wordsForFirestore,
+              updatedAt: new Date().toISOString()
             });
-            console.log(`✅ Assigned list to class: ${selectedClassData?.name || classId}`);
+            console.log('✅ List updated successfully');
+          } else {
+            // Create new list
+            const listRef = await addDoc(collection(db, 'lists'), {
+              title: title.trim(),
+              description: 'Teacher-created vocabulary list',
+              teacherId: teacherId,
+              learningArea: 'vocabulary',
+              words: wordsForFirestore,
+              createdAt: new Date().toISOString()
+            });
+
+            // Create assignments for selected classes
+            const assignmentsCollection = collection(db, 'assignments');
+            for (const classId of selectedClasses) {
+              const selectedClassData = classes.find(c => c.id === classId);
+              await addDoc(assignmentsCollection, {
+                listId: listRef.id,
+                classId: classId,
+                className: selectedClassData?.name || selectedClassData?.className || 'Unknown',
+                teacherId: teacherId,
+                assignedAt: new Date().toISOString(),
+                listTitle: title.trim()
+              });
+              console.log(`✅ Assigned list to class: ${selectedClassData?.name || classId}`);
+            }
           }
 
           resolve();
@@ -677,7 +716,7 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [] }) {
         )
       ]);
 
-      alert(`✅ List saved${selectedClasses.length > 0 ? ` and assigned to ${selectedClasses.length} class(es)` : ''}!`);
+      alert(`✅ List ${editingListId ? 'updated' : 'saved'}${!editingListId && selectedClasses.length > 0 ? ` and assigned to ${selectedClasses.length} class(es)` : ''}!`);
       onSave();
       onClose();
     } catch (error) {
