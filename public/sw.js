@@ -3,7 +3,7 @@
  * Enables offline functionality and app-like experience
  */
 
-const CACHE_NAME = 'bahasa-learning-v1';
+const CACHE_NAME = 'bahasa-learning-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

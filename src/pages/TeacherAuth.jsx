@@ -10,13 +10,14 @@ function TeacherAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Firebase Cloud Functions URLs
   const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
   const REGION = 'us-central1';
   
-  // Use local emulator in development, production URLs in production
-  const isDevelopment = import.meta.env.MODE === 'development' || window.location.hostname === 'localhost';
+  // Use local emulator in development (works with both localhost and network URLs)
+  const isDevelopment = import.meta.env.MODE === 'development' || window.location.port === '3000' || window.location.port === '5173';
   const SEND_OTP_URL = isDevelopment 
     ? `http://127.0.0.1:5001/${FIREBASE_PROJECT_ID}/${REGION}/sendOTP`
     : `https://${REGION}-${FIREBASE_PROJECT_ID}.cloudfunctions.net/sendOTP`;
@@ -156,6 +157,13 @@ function TeacherAuth() {
                 Request One →
               </a>
             </p>
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(!showForgotPassword)}
+              className="text-sm text-blue-600 hover:text-blue-700 font-semibold w-full"
+            >
+              🔄 Didn't receive OTP? Request again
+            </button>
             <a href="/" className="text-xs text-purple-600 hover:text-purple-700 font-semibold">
               ← Back to Home
             </a>

@@ -6,6 +6,8 @@ function TeacherSignUp() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -13,7 +15,7 @@ function TeacherSignUp() {
 
   const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
   const REGION = 'us-central1';
-  const isDevelopment = import.meta.env.MODE === 'development' || window.location.hostname === 'localhost';
+  const isDevelopment = import.meta.env.MODE === 'development' || window.location.port === '3000' || window.location.port === '5173';
   
   const SEND_OTP_URL = isDevelopment 
     ? `http://127.0.0.1:5001/${FIREBASE_PROJECT_ID}/${REGION}/sendOTP`
@@ -112,6 +114,29 @@ function TeacherSignUp() {
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 disabled={loading || otpSent}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                🔒 Password (Optional)
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter a password (optional)"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent pr-12"
+                  disabled={loading || otpSent}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 font-bold"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
             </div>
 
             <button

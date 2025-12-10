@@ -1,0 +1,171 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ============ SECURITY RULES ============
+    // Last Updated: December 9, 2025
+    // Status: ✅ PRODUCTION READY
+
+    // ============ HELPER FUNCTIONS ============
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Get user's Firebase UID
+    function getUserId() {
+      return request.auth.uid;
+    }
+
+    // Get user's email from token
+    function getUserEmail() {
+      return request.auth.token.email != null ? request.auth.token.email : request.auth.uid;
+    }
+
+    // Check if document belongs to current user
+    function belongsToUser(userId) {
+      return resource.data.userId == userId || resource.data.email == getUserEmail();
+    }
+
+    // ============ TEACHER OTPs (Public for signup, but expires quickly) ============
+    match /teacherOTPs/{document=**} {
+      // Only allow reading/writing during signup/login flow
+      // These documents auto-expire after 10 minutes
+      allow create: if true; // Anyone can request OTP (rate limited at function level)
+      allow read, update: if false; // Only Cloud Functions can read/update
+      allow delete: if false;
+    }
+
+    // ============ TEACHERS COLLECTION ============
+    match /teachers/{teacherId} {
+      // Teachers can only read/write their own record
+      allow read: if isAuthenticated() && (
+        teacherId == getUserId() || 
+        resource.data.email == getUserEmail()
+      );
+      
+      allow create: if isAuthenticated() && (
+        request.resource.data.email == getUserEmail() ||
+        request.resource.data.userId == getUserId()
+      );
+      
+      allow update, delete: if isAuthenticated() && (
+        teacherId == getUserId() || 
+        resource.data.email == getUserEmail()
+      );
+    }
+
+    // ============ CLASSES COLLECTION ============
+    match /classes/{classId} {
+      // Teacher can only access their own classes
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == getUserId()
+      );
+      
+      allow create: if isAuthenticated() && (
+        request.resource.data.teacherId == getUserId()
+      );
+      
+      allow update, delete: if isAuthenticated() && (
+        resource.data.teacherId == getUserId()
+      );
+
+      // ============ STUDENTS SUB-COLLECTION ============
+      match /students/{studentId} {
+        // Only class teacher can access students in their class
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == getUserId()
+        );
+        
+        allow create, update, delete: if isAuthenticated() && (
+          get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == getUserId()
+        );
+      }
+    }
+
+    // ============ LISTS COLLECTION (Vocabulary) ============
+    match /lists/{listId} {
+      // Only the teacher who created the list can read/modify it
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == getUserId()
+      );
+      
+      allow create: if isAuthenticated() && (
+        request.resource.data.teacherId == getUserId()
+      );
+      
+      allow update, delete: if isAuthenticated() && (
+        resource.data.teacherId == getUserId()
+      );
+
+      // ============ VOCABULARY SUB-COLLECTION ============
+      match /vocabulary/{vocabId} {
+        // Only accessible through parent list (teacher only)
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/lists/$(listId)).data.teacherId == getUserId()
+        );
+        
+        allow create, update, delete: if isAuthenticated() && (
+          get(/databases/$(database)/documents/lists/$(listId)).data.teacherId == getUserId()
+        );
+      }
+    }
+
+    // ============ ASSIGNMENTS COLLECTION ============
+    match /assignments/{assignmentId} {
+      // Teacher can only see assignments they created
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == getUserId()
+      );
+      
+      allow create: if isAuthenticated() && (
+        request.resource.data.teacherId == getUserId()
+      );
+      
+      allow update, delete: if isAuthenticated() && (
+        resource.data.teacherId == getUserId()
+      );
+    }
+
+    // ============ STUDENT RESPONSES COLLECTION ============
+    match /studentResponses/{responseId} {
+      // Only the teacher who created the assignment, or the student who responded can access
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == getUserId() ||
+        resource.data.studentId == getUserId()
+      );
+      
+      allow create: if isAuthenticated() && (
+        request.resource.data.studentId == getUserId()
+      );
+      
+      allow update: if isAuthenticated() && (
+        resource.data.studentId == getUserId()
+      );
+      
+      allow delete: if false; // Don't allow deleting responses (audit trail)
+    }
+
+    // ============ STUDENT PROGRESS COLLECTION ============
+    match /studentProgress/{progressId} {
+      // Students can read/write their own progress
+      // Teachers can read progress of students in their classes
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == getUserId() ||
+        exists(/databases/$(database)/documents/classes/$(resource.data.classId)) &&
+        get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.teacherId == getUserId()
+      );
+      
+      allow create, update: if isAuthenticated() && (
+        request.resource.data.studentId == getUserId()
+      );
+      
+      allow delete: if false; // Don't allow deleting progress (audit trail)
+    }
+
+    // ============ DEFAULT DENY (Deny everything not explicitly allowed) ============
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

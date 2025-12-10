@@ -16,21 +16,37 @@
   <link rel="manifest" href="/manifest.json">
   
   <title>Bahasa Learning - Grades 1-2</title>
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
 </head>
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
   
-  <!-- Service Worker Registration -->
+  <!-- Service Worker Registration - Disabled in Development -->
   <script>
+    // Unregister all service workers on page load to ensure fresh content
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-          console.log('✅ Service Worker registered successfully', registration);
-        }).catch(error => {
-          console.log('⚠️ Service Worker registration failed:', error);
-        });
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
+        console.log('🧹 Service workers unregistered');
       });
+      
+      // Only register in production (non-dev environment)
+      const isDev = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' || 
+                    window.location.hostname.startsWith('10.');
+      
+      if (!isDev) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('✅ Service Worker registered successfully', registration);
+          }).catch(error => {
+            console.log('⚠️ Service Worker registration failed:', error);
+          });
+        });
+      }
     }
   </script>
 </body>

@@ -3,7 +3,11 @@ import Home from './pages/Home';
 import FirebaseSetup from './pages/FirebaseSetup';
 import AdminCleanup from './pages/AdminCleanup';
 import TestFirebase from './pages/TestFirebase';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminTeacherDetails from './pages/AdminTeacherDetails';
 import TeacherLoginGoogle from './pages/TeacherLoginGoogle';
+import ForgotPassword from './pages/ForgotPassword';
 import TeacherDashboard from './pages/TeacherDashboard';
 import ClassManagement from './pages/ClassManagement';
 import TeacherAnalytics from './pages/TeacherAnalytics';
@@ -30,8 +34,14 @@ function App() {
         <Route path="/admin" element={<AdminCleanup />} />
         <Route path="/test" element={<TestFirebase />} />
         
+        {/* Admin Routes */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/admin-teacher/:teacherId" element={<AdminTeacherDetails />} />
+        
         {/* Teacher Authentication */}
         <Route path="/teacher-login" element={<TeacherLoginGoogle />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         
         {/* Protected Teacher Routes */}
         <Route path="/teacher" element={<ProtectedRoute element={<TeacherDashboard />} />} />

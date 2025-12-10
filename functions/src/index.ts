@@ -3,10 +3,12 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 import cors from 'cors';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 admin.initializeApp();
 
 const db = admin.firestore();
+const secretManagerClient = new SecretManagerServiceClient();
 
 // CORS middleware
 const corsHandler = cors({ origin: true });
@@ -14,20 +16,122 @@ const corsHandler = cors({ origin: true });
 // Configuration
 const OTP_EXPIRY_MINUTES = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const PROJECT_ID = process.env.GCLOUD_PROJECT || 'bahasa-indonesia-73d67';
+
+/**
+ * Get secret from Google Cloud Secret Manager
+ * Falls back to environment variable if not in production
+ */
+const getSecret = async (secretName: string): Promise<string> => {
+  // In development, use environment variables
+  if (!process.env.GCLOUD_PROJECT) {
+    const envVar = process.env[secretName];
+    if (envVar) {
+      console.log(`📌 Using environment variable: ${secretName}`);
+      return envVar;
+    }
+    throw new Error(`Secret ${secretName} not found in environment variables`);
+  }
+
+  // In production, fetch from Secret Manager
+  try {
+    const name = `projects/${PROJECT_ID}/secrets/${secretName}/versions/latest`;
+    const [version] = await secretManagerClient.accessSecretVersion({ name });
+    const payload = version.payload?.data?.toString() || '';
+    console.log(`🔐 Retrieved secret from Secret Manager: ${secretName}`);
+    return payload;
+  } catch (error) {
+    console.error(`❌ Failed to retrieve secret ${secretName}:`, error);
+    // Fall back to environment variable
+    const envVar = process.env[secretName];
+    if (envVar) {
+      console.log(`📌 Falling back to environment variable: ${secretName}`);
+      return envVar;
+    }
+    throw new Error(`Secret ${secretName} not found in Secret Manager or environment`);
+  }
+};
+
+// Rate Limiting Configuration
+const RATE_LIMIT_CONFIG = {
+  sendOTP: {
+    maxAttempts: 3,
+    windowMs: 15 * 60 * 1000 // 15 minutes
+  },
+  verifyOTP: {
+    maxAttempts: 5,
+    windowMs: 15 * 60 * 1000 // 15 minutes
+  }
+};
+
+// In-memory rate limit store (in production, use Redis or Firestore)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Check and enforce rate limiting
+ * @param identifier IP address or email
+ * @param maxAttempts Maximum attempts allowed
+ * @param windowMs Time window in milliseconds
+ * @returns { allowed: boolean, remaining: number, resetTime: number }
+ */
+const checkRateLimit = (
+  identifier: string,
+  maxAttempts: number,
+  windowMs: number
+): { allowed: boolean; remaining: number; resetTime: number } => {
+  const now = Date.now();
+  const record = rateLimitStore.get(identifier);
+
+  // Create new record if doesn't exist
+  if (!record || now > record.resetTime) {
+    const newRecord = { count: 1, resetTime: now + windowMs };
+    rateLimitStore.set(identifier, newRecord);
+    return {
+      allowed: true,
+      remaining: maxAttempts - 1,
+      resetTime: newRecord.resetTime
+    };
+  }
+
+  // Increment existing record
+  record.count++;
+
+  if (record.count > maxAttempts) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetTime: record.resetTime
+    };
+  }
+
+  return {
+    allowed: true,
+    remaining: maxAttempts - record.count,
+    resetTime: record.resetTime
+  };
+};
 
 // Verify required environment variables in production
 if (process.env.GCLOUD_PROJECT && !process.env.TEACHER_EMAIL_USER) {
   console.warn('WARNING: TEACHER_EMAIL_USER not configured. OTP emails will not be sent. Configure in Firebase Console.');
 }
 
-// Email Configuration - Initialize as needed to pick up latest environment variables
-const getEmailTransporter = (): nodemailer.Transporter | null => {
+// Email Configuration - Fetch from Secret Manager (production) or env (development)
+const getEmailTransporter = async (): Promise<nodemailer.Transporter | null> => {
   try {
-    const emailUser = process.env.TEACHER_EMAIL_USER || 'your-email@gmail.com';
-    const emailPass = process.env.TEACHER_EMAIL_PASSWORD || 'your-app-password';
-    
+    let emailUser: string;
+    let emailPass: string;
+
+    try {
+      emailUser = await getSecret('TEACHER_EMAIL_USER');
+      emailPass = await getSecret('TEACHER_EMAIL_PASSWORD');
+    } catch (error) {
+      console.warn('⚠️  Could not retrieve email credentials from Secret Manager or environment');
+      return null;
+    }
+
     console.log(`📧 Email Config: user=${emailUser}, password=${emailPass ? '***' + emailPass.slice(-4) : 'NOT SET'}`);
-    
+
     return nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -53,8 +157,18 @@ const generateOTP = (): string => {
 // Send OTP via email
 const sendOTPEmail = async (email: string, otp: string): Promise<boolean> => {
   try {
+    const transporter = await getEmailTransporter();
+    
+    if (!transporter) {
+      console.log(`[MOCK MODE] OTP for ${email}: ${otp}`);
+      console.warn('⚠️  Email credentials not configured. Running in mock mode.');
+      return false;
+    }
+
+    const senderEmail = await getSecret('TEACHER_EMAIL_USER').catch(() => 'noreply@bahasa-learning.com');
+    
     const mailOptions = {
-      from: process.env.TEACHER_EMAIL_USER || 'noreply@bahasa-learning.com',
+      from: senderEmail,
       to: email,
       subject: 'Your Bahasa Learning Platform Login Code',
       html: `
@@ -70,22 +184,10 @@ const sendOTPEmail = async (email: string, otp: string): Promise<boolean> => {
       `
     };
 
-    if (process.env.TEACHER_EMAIL_USER && process.env.TEACHER_EMAIL_PASSWORD) {
-      console.log(`🔧 Creating transporter with email: ${process.env.TEACHER_EMAIL_USER}`);
-      const transporter = getEmailTransporter();
-      if (transporter) {
-        console.log(`📧 Attempting to send email to ${email} with code ${otp}`);
-        await transporter.sendMail(mailOptions);
-        console.log(`✅ OTP email sent successfully to ${email}`);
-        return true;
-      }
-      console.warn('❌ Email transporter not available');
-      return false;
-    } else {
-      console.log(`[MOCK MODE] OTP for ${email}: ${otp}`);
-      console.warn('⚠️  TEACHER_EMAIL_USER or TEACHER_EMAIL_PASSWORD not set');
-      return false;
-    }
+    console.log(`📧 Attempting to send email to ${email} with code ${otp}`);
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ OTP email sent successfully to ${email}`);
+    return true;
   } catch (error) {
     console.error('❌ Error sending OTP email:', error);
     return false;
@@ -109,6 +211,28 @@ export const sendOTP = functions.https.onRequest(async (req, res) => {
         res.status(400).json({ error: 'Valid email required' });
         return;
       }
+
+      // ✅ SECURITY: Check rate limiting
+      const clientIP = req.ip || 'unknown';
+      const rateLimitKey = `sendOTP:${clientIP}:${email.toLowerCase()}`;
+      const rateLimitCheck = checkRateLimit(
+        rateLimitKey,
+        RATE_LIMIT_CONFIG.sendOTP.maxAttempts,
+        RATE_LIMIT_CONFIG.sendOTP.windowMs
+      );
+
+      if (!rateLimitCheck.allowed) {
+        console.warn(`🚫 Rate limit exceeded for ${email} from ${clientIP}`);
+        const resetTime = new Date(rateLimitCheck.resetTime);
+        res.status(429).json({
+          error: 'Too many OTP requests. Please try again later.',
+          retryAfter: Math.ceil((rateLimitCheck.resetTime - Date.now()) / 1000),
+          resetTime: resetTime.toISOString()
+        });
+        return;
+      }
+
+      console.log(`✅ Rate limit check passed. Remaining attempts: ${rateLimitCheck.remaining}`);
 
       const otp = generateOTP();
       const expiryTime = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000);
@@ -139,7 +263,8 @@ export const sendOTP = functions.https.onRequest(async (req, res) => {
         res.status(200).json({
           success: true,
           message: 'OTP sent to your email',
-          mockMode: !process.env.TEACHER_EMAIL_USER
+          mockMode: !process.env.TEACHER_EMAIL_USER,
+          remainingAttempts: rateLimitCheck.remaining
         });
       } else {
         console.error(`❌ Email failed to send for ${email}`);
@@ -168,6 +293,28 @@ export const verifyOTP = functions.https.onRequest(async (req, res) => {
         return;
       }
 
+      // ✅ SECURITY: Check rate limiting for OTP verification attempts
+      const clientIP = req.ip || 'unknown';
+      const rateLimitKey = `verifyOTP:${clientIP}:${email.toLowerCase()}`;
+      const rateLimitCheck = checkRateLimit(
+        rateLimitKey,
+        RATE_LIMIT_CONFIG.verifyOTP.maxAttempts,
+        RATE_LIMIT_CONFIG.verifyOTP.windowMs
+      );
+
+      if (!rateLimitCheck.allowed) {
+        console.warn(`🚫 Rate limit exceeded for verification attempts from ${clientIP}`);
+        const resetTime = new Date(rateLimitCheck.resetTime);
+        res.status(429).json({
+          error: 'Too many verification attempts. Please try again later.',
+          retryAfter: Math.ceil((rateLimitCheck.resetTime - Date.now()) / 1000),
+          resetTime: resetTime.toISOString()
+        });
+        return;
+      }
+
+      console.log(`✅ Rate limit check passed. Remaining attempts: ${rateLimitCheck.remaining}`);
+
       // Query Firestore for matching OTP
       try {
         const query = await db.collection('teacherOTPs')
@@ -179,7 +326,10 @@ export const verifyOTP = functions.https.onRequest(async (req, res) => {
           .get();
 
         if (query.empty) {
-          res.status(401).json({ error: 'Invalid OTP' });
+          res.status(401).json({ 
+            error: 'Invalid OTP',
+            remainingAttempts: rateLimitCheck.remaining
+          });
           return;
         }
 
@@ -189,7 +339,10 @@ export const verifyOTP = functions.https.onRequest(async (req, res) => {
         // Check if OTP is expired
         const expiryTime = otpData.expiryTime.toDate();
         if (new Date() > expiryTime) {
-          res.status(401).json({ error: 'OTP has expired' });
+          res.status(401).json({ 
+            error: 'OTP has expired',
+            remainingAttempts: rateLimitCheck.remaining
+          });
           return;
         }
 
@@ -247,7 +400,10 @@ export const verifyOTP = functions.https.onRequest(async (req, res) => {
             message: 'Login successful (mock mode)'
           });
         } else {
-          res.status(401).json({ error: 'Invalid OTP' });
+          res.status(401).json({ 
+            error: 'Invalid OTP',
+            remainingAttempts: rateLimitCheck.remaining
+          });
         }
       }
     } catch (error) {
