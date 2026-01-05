@@ -24,7 +24,7 @@ git push origin main
 In Vercel Dashboard, go to **Project Settings → Environment Variables** and add:
 
 ```
-VITE_FIREBASE_API_KEY=AIzaSyAu4xnTGl8rlfTvFega2zcTFUMvv-72rXc
+VITE_FIREBASE_API_KEY=your-firebase-api-key-here
 VITE_FIREBASE_AUTH_DOMAIN=bahasa-indonesia-73d67.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=bahasa-indonesia-73d67
 VITE_FIREBASE_STORAGE_BUCKET=bahasa-indonesia-73d67.firebasestorage.app

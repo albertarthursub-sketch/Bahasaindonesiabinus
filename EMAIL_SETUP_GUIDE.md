@@ -35,7 +35,7 @@ The App Password credentials in `.env` are not working with Gmail SMTP.
    ```
    TEACHER_EMAIL_USER=arthurapp05@gmail.com
    TEACHER_EMAIL_PASSWORD=xxxx xxxx xxxx xxxx  (new 16-char password from Google)
-   JWT_SECRET=bahasa-learning-platform-secret-key-2025
+   JWT_SECRET=your-very-secure-random-string-at-least-32-characters
    ```
 
 ### Step 2: Redeploy Cloud Functions

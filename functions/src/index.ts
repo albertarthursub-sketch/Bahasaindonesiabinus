@@ -13,7 +13,7 @@ const corsHandler = cors({ origin: true });
 
 // Configuration
 const OTP_EXPIRY_MINUTES = 10;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
 
 // Verify required environment variables in production
 if (process.env.GCLOUD_PROJECT && !process.env.TEACHER_EMAIL_USER) {

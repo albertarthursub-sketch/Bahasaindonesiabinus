@@ -37,7 +37,7 @@ const STABILITY_API_KEY = (process.env.STABILITY_API_KEY || '').trim();
 const STABILITY_API_URL = 'https://api.stability.ai/v2beta/stable-image/generate/ultra';
 
 // JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
 const OTP_EXPIRY_MINUTES = 10;
 
 // Email Configuration (Gmail with App Password)

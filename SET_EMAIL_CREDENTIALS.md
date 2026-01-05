@@ -52,7 +52,7 @@ cd functions
 Create `functions/.env.local`:
 ```
 TEACHER_EMAIL_USER=arthurapp05@gmail.com
-TEACHER_EMAIL_PASSWORD=ltdhurqwjvdopjm
+TEACHER_EMAIL_PASSWORD=your-16-char-app-password
 ```
 
 Then redeploy:

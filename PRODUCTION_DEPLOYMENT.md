@@ -116,7 +116,7 @@ JWT_SECRET=your-production-secret-key
 ### Frontend Environment (from .env)
 ```
 VITE_FIREBASE_PROJECT_ID=bahasa-indonesia-73d67
-VITE_FIREBASE_API_KEY=AIzaSyAu4xnTGl8rlfTvFega2zcTFUMvv-72rXc
+VITE_FIREBASE_API_KEY=your-firebase-api-key-here
 ... (other Firebase config)
 ```
 

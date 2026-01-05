@@ -46,7 +46,7 @@ This is **normal and expected**. In Firebase Console:
 
 ```
 Gmail: arthurapp05@gmail.com
-App Password: ltdhurqwjvdopjm
+App Password: [REDACTED - SET IN FIREBASE CONSOLE]
 ```
 
 These were found in your `.env` file and are ready to use.
