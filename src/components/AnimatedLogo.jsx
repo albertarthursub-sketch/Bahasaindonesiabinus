@@ -17,7 +17,7 @@ function AnimatedLogo() {
               className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 filter drop-shadow-2xl transform hover:scale-110 transition-transform duration-300"
             />
           </div>
-
+          
           {/* Shimmer Effect */}
           <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white to-transparent opacity-0 animate-shimmer"></div>
         </div>

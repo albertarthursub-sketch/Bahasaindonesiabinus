@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, storage } from '../firebase';
+import { db, storage, auth } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -43,13 +43,24 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
     setLoading(true);
 
     try {
+      // ✅ Get Firebase ID token for authentication
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        setError('Authentication required. Please log in again.');
+        setLoading(false);
+        return;
+      }
+
       const requestPayload = { theme: theme.trim(), count };
       console.log('📝 Calling Cloud Function with payload:', requestPayload);
       const functionUrl = 'https://us-central1-bahasa-indonesia-73d67.cloudfunctions.net/generateVocabularyWithClaude';
       
       const response = await fetch(functionUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify(requestPayload)
       });
 
@@ -309,22 +320,38 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
 
         {/* STEP 1: Input Form */}
         {step === 1 && (
-          <form onSubmit={generateVocabularyWithAI} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📝 List Title
-              </label>
-              <input
-                type="text"
-                value={listTitle}
-                onChange={(e) => setListTitle(e.target.value)}
-                placeholder="e.g., Kitchen Vocabulary"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
-              />
+          <form onSubmit={generateVocabularyWithAI} className="space-y-3">
+            {/* Title and Number of Items in a grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  📝 List Title
+                </label>
+                <input
+                  type="text"
+                  value={listTitle}
+                  onChange={(e) => setListTitle(e.target.value)}
+                  placeholder="Kitchen Vocabulary"
+                  className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  📊 # of Items
+                </label>
+                <input
+                  type="number"
+                  value={numItems}
+                  onChange={(e) => setNumItems(e.target.value)}
+                  min="1"
+                  max="20"
+                  className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 🏷️ Theme
               </label>
               <input
@@ -332,32 +359,18 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
                 placeholder="e.g., kitchen items, animals, colors"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📊 Number of Items
-              </label>
-              <input
-                type="number"
-                value={numItems}
-                onChange={(e) => setNumItems(e.target.value)}
-                min="1"
-                max="20"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
               />
             </div>
 
             {classes.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  🎓 Assign to Classes (Optional)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🎓 Assign to Classes
                 </label>
-                <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-50 p-3 rounded-lg border-2 border-gray-300">
+                <div className="space-y-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded-lg border-2 border-gray-300">
                   {classes.map((classItem) => (
-                    <label key={classItem.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                    <label key={classItem.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded text-sm">
                       <input
                         type="checkbox"
                         checked={selectedClasses.includes(classItem.id)}
@@ -368,9 +381,9 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
                             setSelectedClasses(selectedClasses.filter(id => id !== classItem.id));
                           }
                         }}
-                        className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       />
-                      <span className="text-sm text-gray-800 font-medium">{classItem.name || classItem.className}</span>
+                      <span className="text-gray-800 font-medium">{classItem.name || classItem.className}</span>
                     </label>
                   ))}
                 </div>
@@ -380,7 +393,7 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-bold py-3 rounded-lg transition"
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-bold py-2 rounded-lg transition text-sm"
             >
               {loading ? '⏳ Generating...' : '✨ Generate Vocabulary'}
             </button>
