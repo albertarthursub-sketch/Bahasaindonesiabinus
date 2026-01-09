@@ -89,6 +89,11 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
 
+          // Don't cache non-HTTP(S) schemes (chrome-extension, etc.)
+          if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
+            return response;
+          }
+
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);

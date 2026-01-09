@@ -299,15 +299,21 @@ export const generateVocabularyWithClaude = functions.https.onRequest((req, res)
       // ✅ SECURITY: Verify user is authenticated via Authorization header
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.error('❌ Missing or invalid auth header:', authHeader);
         return res.status(401).json({ error: 'Unauthorized: Missing or invalid authentication token' });
       }
 
       const idToken = authHeader.split('Bearer ')[1];
+      console.log('🔐 Verifying token:', idToken.substring(0, 20) + '...');
+      
       try {
         // Verify the Firebase ID token
-        await admin.auth().verifyIdToken(idToken);
-      } catch (error) {
-        return res.status(401).json({ error: 'Unauthorized: Invalid authentication token' });
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        console.log('✅ Token verified for user:', decodedToken.email);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('❌ Token verification failed:', errorMessage);
+        return res.status(401).json({ error: 'Unauthorized: Invalid authentication token', details: errorMessage });
       }
 
       const { theme, count } = req.body;
