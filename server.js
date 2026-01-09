@@ -240,6 +240,17 @@ const verifyToken = (req, res, next) => {
 
 app.post('/api/generate-vocabulary', async (req, res) => {
   try {
+    // Validate Bearer token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized: Missing or invalid authentication token' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token format' });
+    }
+
     const { theme, gradeLevel, count = 10 } = req.body;
 
     // Mock data that works immediately

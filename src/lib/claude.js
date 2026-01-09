@@ -2,10 +2,17 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export async function generateVocabularyList(theme, gradeLevel, count = 10) {
   try {
+    // Get auth token from sessionStorage
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Authentication token not found. Please login.');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/generate-vocabulary`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         theme,
