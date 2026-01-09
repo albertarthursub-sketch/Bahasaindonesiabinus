@@ -291,6 +291,26 @@ function StudentLearn() {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  // Helper function to get proxied image URL for students
+  const getStudentImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    
+    // If it's already a data URL or a regular HTTP URL, use directly
+    if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
+      // For Firebase Storage URLs, use the proxy endpoint
+      if (imageUrl.includes('firebasestorage.googleapis.com')) {
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (apiUrl) {
+          // Encode the URL in base64 to preserve query parameters
+          const encodedUrl = btoa(imageUrl);
+          return `${apiUrl}/api/proxy-image?url=${encodedUrl}`;
+        }
+      }
+      return imageUrl;
+    }
+    return null;
+  };
+
   // Route based on learning mode
   if (list.mode === 'image-vocabulary') {
     return (
@@ -341,9 +361,14 @@ function StudentLearn() {
           <div className="mb-4 md:mb-6 flex justify-center">
             {currentWord.imageUrl ? (
               <img 
-                src={currentWord.imageUrl} 
+                src={getStudentImageUrl(currentWord.imageUrl) || currentWord.imageUrl} 
                 alt={currentWord.word} 
                 className="max-h-48 md:max-h-80 max-w-full object-contain rounded-lg shadow-lg"
+                onError={(e) => {
+                  console.error('Failed to load image:', currentWord.imageUrl);
+                  // Fall back to placeholder
+                  e.target.style.display = 'none';
+                }}
               />
             ) : (
               <div className="w-full h-48 md:h-64 bg-gradient-to-br from-blue-200 to-purple-200 rounded-lg flex items-center justify-center text-4xl md:text-6xl">

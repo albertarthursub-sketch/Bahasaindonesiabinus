@@ -531,12 +531,20 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [], editingList
       if (!apiUrl) {
         throw new Error('VITE_API_URL environment variable not configured. Check your .env file.');
       }
+
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Please log in again to generate vocabulary');
+      }
       
       console.log('Full URL:', `${apiUrl}/api/generate-category`);
       
       const response = await fetch(`${apiUrl}/api/generate-category`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ category: categoryInput.trim() })
       });
 
@@ -568,12 +576,22 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [], editingList
       return wordsList;
     }
 
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+      console.error('No authentication token found');
+      alert('Please log in again to generate images');
+      return wordsList;
+    }
+
     const updated = [...wordsList];
     for (let i = 0; i < updated.length; i++) {
       try {
         const response = await fetch(`${apiUrl}/api/generate-image`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ 
             prompt: updated[i].english,
             customPrompt: ''

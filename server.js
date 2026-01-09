@@ -11,20 +11,21 @@ dotenv.config();
 
 // Initialize Firebase Admin SDK
 const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-service-account.json';
+let db = null;
 try {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
   if (Object.keys(serviceAccount).length === 0 && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     admin.initializeApp();
-  } else {
+    db = admin.firestore();
+  } else if (Object.keys(serviceAccount).length > 0) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
+    db = admin.firestore();
   }
 } catch (error) {
-  console.warn('Firebase Admin SDK initialization skipped (OTP features will use mock data)');
+  console.warn('Firebase Admin SDK initialization skipped (OTP features will use mock data):', error.message);
 }
-
-const db = admin.firestore ? admin.firestore() : null;
 
 const app = express();
 app.use(cors());
@@ -546,6 +547,57 @@ app.post('/api/generate-image', async (req, res) => {
     }
     console.error('Error generating image:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Image proxy endpoint - allows students to fetch images from Cloud Storage URLs
+// This bypasses CORS issues and auth requirements for Firebase Storage URLs
+app.get('/api/proxy-image', async (req, res) => {
+  try {
+    const { url } = req.query;
+
+    if (!url) {
+      return res.status(400).json({ error: 'URL parameter required' });
+    }
+
+    // Decode the URL (it should be base64 encoded to preserve query params)
+    let imageUrl;
+    try {
+      imageUrl = Buffer.from(decodeURIComponent(url), 'base64').toString('utf8');
+    } catch (e) {
+      // If not base64, try direct URL
+      imageUrl = decodeURIComponent(url);
+    }
+
+    // Security: Only allow Firebase Storage URLs
+    if (!imageUrl.includes('firebasestorage.googleapis.com')) {
+      return res.status(403).json({ error: 'Only Firebase Storage URLs are allowed' });
+    }
+
+    console.log('Proxying image from:', imageUrl.substring(0, 80) + '...');
+
+    // Fetch the image from Firebase Storage
+    const imageResponse = await fetch(imageUrl);
+
+    if (!imageResponse.ok) {
+      console.error('Failed to fetch image:', imageResponse.status);
+      return res.status(imageResponse.status).json({ error: 'Failed to fetch image' });
+    }
+
+    // Get the image buffer
+    const imageBuffer = await imageResponse.buffer();
+
+    // Set appropriate headers
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Send the image
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error('Error proxying image:', error);
+    res.status(500).json({ error: 'Failed to proxy image' });
   }
 });
 

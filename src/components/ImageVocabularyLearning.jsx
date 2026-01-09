@@ -20,6 +20,26 @@ const ImageVocabularyLearning = ({
   const currentWord = words[currentIndex];
   const isLastWord = currentIndex === words.length - 1;
 
+  // Helper function to convert image URLs for students
+  const getStudentImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    
+    // If it's already a data URL or a regular HTTP URL, use directly
+    if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
+      // For Firebase Storage URLs, use the proxy endpoint
+      if (imageUrl.includes('firebasestorage.googleapis.com')) {
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (apiUrl) {
+          // Encode the URL in base64 to preserve query parameters
+          const encodedUrl = btoa(imageUrl);
+          return `${apiUrl}/api/proxy-image?url=${encodedUrl}`;
+        }
+      }
+      return imageUrl;
+    }
+    return null;
+  };
+
   const getOptions = () => {
     if (!currentWord || !words) return [];
     const currentName = currentWord.name || currentWord.word;
@@ -107,6 +127,7 @@ const ImageVocabularyLearning = ({
 
   const options = getOptions();
   const imageUrl = currentWord.imageUrl || currentWord.image;
+  const displayImageUrl = getStudentImageUrl(imageUrl);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-2 md:p-4">
@@ -146,11 +167,15 @@ const ImageVocabularyLearning = ({
         </div>
 
         <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl p-3 md:p-6 mb-4 md:mb-8 shadow-lg">
-          {imageUrl ? (
+          {displayImageUrl ? (
             <img
-              src={imageUrl}
+              src={displayImageUrl}
               alt={currentWord.name || currentWord.word}
               className="w-full max-h-48 md:max-h-64 object-cover rounded-2xl mb-3 md:mb-4"
+              onError={(e) => {
+                console.error('Failed to load image:', displayImageUrl);
+                e.target.style.display = 'none';
+              }}
             />
           ) : (
             <div className="w-full h-48 md:h-64 bg-gray-200 rounded-2xl flex items-center justify-center mb-3 md:mb-4">
