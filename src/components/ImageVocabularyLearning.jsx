@@ -24,32 +24,19 @@ const ImageVocabularyLearning = ({
   const getStudentImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
     
-    // If it's a Firebase Storage URL, convert it to use our proxy
-    if (imageUrl.includes('firebasestorage.googleapis.com')) {
-      // Try to get API URL from environment
-      let apiUrl = import.meta.env.VITE_API_URL;
-      
-      // Fallback: If VITE_API_URL is not set, try to construct it from window location
-      if (!apiUrl) {
-        // In development: http://localhost:5000
-        // In production: same as current origin but with backend port/path
-        apiUrl = window.location.hostname === 'localhost' 
-          ? 'http://localhost:5000'
-          : `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-      }
-      
-      console.log('📸 Converting Firebase URL to proxy, API URL:', apiUrl);
-      const encodedUrl = btoa(imageUrl);
-      const proxyUrl = `${apiUrl}/api/proxy-image?url=${encodedUrl}`;
-      console.log('📸 Proxy URL:', proxyUrl);
-      return proxyUrl;
-    }
-    
     // If it's already a data URL or a regular HTTP URL, use directly
     if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
+      // For Firebase Storage URLs, use the proxy endpoint
+      if (imageUrl.includes('firebasestorage.googleapis.com')) {
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (apiUrl) {
+          // Encode the URL in base64 to preserve query parameters
+          const encodedUrl = btoa(imageUrl);
+          return `${apiUrl}/api/proxy-image?url=${encodedUrl}`;
+        }
+      }
       return imageUrl;
     }
-    
     return null;
   };
 
