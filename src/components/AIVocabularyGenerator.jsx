@@ -44,9 +44,18 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
 
     try {
       // ✅ Get Firebase ID token for authentication
-      const idToken = await auth.currentUser?.getIdToken();
+      if (!auth.currentUser) {
+        setError('Not logged in. Please log in first.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('👤 Current user:', auth.currentUser.email);
+      const idToken = await auth.currentUser.getIdToken(true);
+      console.log('🔑 Got ID token:', idToken.substring(0, 20) + '...');
+      
       if (!idToken) {
-        setError('Authentication required. Please log in again.');
+        setError('Failed to get authentication token. Please log in again.');
         setLoading(false);
         return;
       }
@@ -55,6 +64,7 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
       console.log('📝 Calling Cloud Function with payload:', requestPayload);
       const functionUrl = 'https://us-central1-bahasa-indonesia-73d67.cloudfunctions.net/generateVocabularyWithClaude';
       
+      console.log('🚀 Fetching from:', functionUrl);
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: { 
@@ -64,14 +74,24 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
         body: JSON.stringify(requestPayload)
       });
 
+      console.log('📬 Response status:', response.status);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText };
+        }
+        throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
       
       if (!data.success || !data.items) {
+        console.warn('⚠️ Unexpected response structure:', data);
         throw new Error('Invalid response from server');
       }
 
