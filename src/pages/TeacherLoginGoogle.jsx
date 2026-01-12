@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider, OAuthProvider, sendEmailVerification } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 function TeacherLoginGoogle() {
@@ -201,6 +201,81 @@ function TeacherLoginGoogle() {
     }
   };
 
+  // Microsoft Sign In
+  const handleMicrosoftSignIn = async () => {
+    setError('');
+    setMessage('');
+    setLoading(true);
+
+    try {
+      const microsoftProvider = new OAuthProvider('microsoft.com');
+      microsoftProvider.addScopes('mail.read', 'profile');
+      
+      let result;
+      
+      try {
+        // Try popup first (works on desktop and most tablets)
+        result = await signInWithPopup(auth, microsoftProvider);
+      } catch (popupError) {
+        // If popup is blocked, try redirect instead (better for mobile/Safari)
+        console.warn('Pop-up blocked or failed, using redirect:', popupError.code);
+        
+        if (popupError.code === 'auth/popup-blocked' || 
+            popupError.code === 'auth/popup-closed-by-user' ||
+            popupError.message?.includes('popup')) {
+          setMessage('Opening Microsoft login page...');
+          await signInWithRedirect(auth, microsoftProvider);
+          return; // Redirect will handle the rest
+        } else {
+          throw popupError; // Re-throw other errors
+        }
+      }
+
+      const user = result.user;
+
+      // Create or get teacher document
+      const teacherRef = doc(db, 'teachers', user.uid);
+      const teacherSnap = await getDoc(teacherRef);
+
+      if (!teacherSnap.exists()) {
+        // New user - create teacher record
+        await setDoc(teacherRef, {
+          email: user.email,
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          createdAt: new Date(),
+          lastLogin: new Date(),
+          status: 'active',
+          emailVerified: user.emailVerified,
+          provider: 'microsoft'
+        });
+      } else {
+        // Existing user - update last login
+        await setDoc(teacherRef, {
+          lastLogin: new Date(),
+          status: 'active',
+          emailVerified: user.emailVerified
+        }, { merge: true });
+      }
+
+      sessionStorage.setItem('authToken', user.uid);
+      sessionStorage.setItem('teacherEmail', user.email);
+      if (user.displayName) {
+        sessionStorage.setItem('teacherName', user.displayName);
+      }
+
+      setMessage('✅ Microsoft login successful! Redirecting...');
+      setTimeout(() => {
+        navigate('/teacher');
+      }, 1000);
+    } catch (err) {
+      console.error('Microsoft sign in error:', err);
+      setError(err.message || 'Microsoft sign in failed. Please try again or use email login.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = isSignUp ? handleSignUp : handleLogin;
 
   return (
@@ -314,6 +389,21 @@ function TeacherLoginGoogle() {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             <span>{isSignUp ? 'Sign up with Google' : 'Login with Google'}</span>
+          </button>
+
+          {/* Microsoft Sign In Button */}
+          <button
+            onClick={handleMicrosoftSignIn}
+            disabled={loading}
+            className="w-full mt-3 flex items-center justify-center gap-3 bg-blue-50 border-2 border-blue-300 hover:border-blue-400 hover:bg-blue-100 disabled:bg-gray-100 disabled:border-gray-200 text-blue-900 font-bold py-3 rounded-lg transition-all shadow-md hover:shadow-lg"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <rect fill="#0078D4" x="1" y="1" width="10" height="10"/>
+              <rect fill="#50E6FF" x="13" y="1" width="10" height="10"/>
+              <rect fill="#FFB900" x="1" y="13" width="10" height="10"/>
+              <rect fill="#F25022" x="13" y="13" width="10" height="10"/>
+            </svg>
+            <span>{isSignUp ? 'Sign up with Microsoft' : 'Login with Microsoft'}</span>
           </button>
 
           {/* Toggle Sign Up / Login */}
