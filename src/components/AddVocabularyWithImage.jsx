@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes } from 'firebase/storage';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
@@ -49,7 +49,13 @@ const AddVocabularyWithImage = ({ onClose, onSave, teacherId }) => {
       const storageRef = ref(storage, `vocabularies/${fileName}`);
       
       await uploadBytes(storageRef, currentImageFile);
-      const imageUrl = await getDownloadURL(storageRef);
+      // Use public URL format instead of getDownloadURL (which includes auth tokens)
+      // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media
+      const bucketName = 'bahasa-indonesia-73d67.firebasestorage.app';
+      const fullPath = `vocabularies/${fileName}`;
+      // Encode only the path components, not the slashes
+      const encodedPath = fullPath.split('/').map(part => encodeURIComponent(part)).join('%2F');
+      const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
 
       // Add to local state
       setWords([

@@ -29,9 +29,9 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
     
-    // Students collection - readable by teachers and the student themselves
+    // Students collection - readable by teachers, the student themselves, and unauthenticated for login code lookup
     match /students/{studentId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null || request.query.filters.fieldFilter[0].field.fieldPath == 'loginCode';
       allow write: if request.auth.uid == resource.data.teacherId || request.auth.uid == studentId;
       allow create: if request.auth != null;
     }

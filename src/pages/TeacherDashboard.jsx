@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, storage } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
 import LearningModeSelector from '../components/LearningModeSelector';
 import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
 import AIVocabularyGenerator from '../components/AIVocabularyGenerator';
@@ -659,7 +659,12 @@ function CreateListModal({ onClose, onSave, teacherId, classes = [], editingList
                   const fileName = `vocabulary/${Date.now()}-${w.word || 'image'}.png`;
                   const storageRef = ref(storage, fileName);
                   await uploadBytes(storageRef, blob);
-                  imageUrl = await getDownloadURL(storageRef);
+                  // Use public URL format instead of getDownloadURL (which includes auth tokens)
+                  // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media
+                  const bucketName = 'bahasa-indonesia-73d67.firebasestorage.app';
+                  // Encode only the filename, not the entire path
+                  const encodedPath = fileName.split('/').map(part => encodeURIComponent(part)).join('%2F');
+                  imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
                   console.log(`✅ Uploaded image for ${w.word} to Cloud Storage: ${imageUrl}`);
                 } catch (err) {
                   console.error(`Error uploading image for ${w.word}:`, err);

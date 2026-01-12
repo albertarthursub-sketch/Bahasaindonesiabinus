@@ -24,19 +24,19 @@ const ImageVocabularyLearning = ({
   const getStudentImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
     
-    // If it's already a data URL or a regular HTTP URL, use directly
-    if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
-      // For Firebase Storage URLs, use the proxy endpoint
-      if (imageUrl.includes('firebasestorage.googleapis.com')) {
-        const apiUrl = import.meta.env.VITE_API_URL;
-        if (apiUrl) {
-          // Encode the URL in base64 to preserve query parameters
-          const encodedUrl = btoa(imageUrl);
-          return `${apiUrl}/api/proxy-image?url=${encodedUrl}`;
-        }
-      }
+    // If it's a data URL, use directly
+    if (imageUrl.startsWith('data:')) {
       return imageUrl;
     }
+    
+    // For HTTP/HTTPS URLs (including Firebase), use directly
+    // Firebase now allows public read access to /vocabulary and /ai-vocabulary paths
+    if (imageUrl.startsWith('http')) {
+      console.log('Using direct Firebase URL:', imageUrl.substring(0, 100) + '...');
+      return imageUrl;
+    }
+    
+    console.log('Invalid image URL format:', imageUrl);
     return null;
   };
 
@@ -173,9 +173,15 @@ const ImageVocabularyLearning = ({
               alt={currentWord.name || currentWord.word}
               className="w-full max-h-48 md:max-h-64 object-cover rounded-2xl mb-3 md:mb-4"
               onError={(e) => {
-                console.error('Failed to load image:', displayImageUrl);
+                console.error('Failed to load image from:', displayImageUrl);
+                console.error('Image details:', {
+                  src: e.target.src,
+                  naturalWidth: e.target.naturalWidth,
+                  naturalHeight: e.target.naturalHeight
+                });
                 e.target.style.display = 'none';
               }}
+              onLoad={() => console.log('Image loaded successfully:', displayImageUrl.substring(0, 100))}
             />
           ) : (
             <div className="w-full h-48 md:h-64 bg-gray-200 rounded-2xl flex items-center justify-center mb-3 md:mb-4">

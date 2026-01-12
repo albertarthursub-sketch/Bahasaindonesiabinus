@@ -72,15 +72,15 @@ function Home() {
 
                 {/* CTA */}
                 <div className="mt-4 pt-3 border-t-2 border-blue-200 space-y-1.5">
-                  <Link to="/teacher-login" className="block">
-                    <button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                  <Link to="/teacher-login" className="w-full block">
+                    <div className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-center">
                       ✅ Sign In
-                    </button>
+                    </div>
                   </Link>
-                  <Link to="/teacher-login" className="block">
-                    <button className="w-full bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 text-blue-700 font-bold py-2 px-3 rounded-lg text-xs shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 border-2 border-blue-300">
+                  <Link to="/teacher-login" className="w-full block">
+                    <div className="w-full bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 text-blue-700 font-bold py-2 px-3 rounded-lg text-xs shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 border-2 border-blue-300 text-center">
                       📝 Create Account
-                    </button>
+                    </div>
                   </Link>
                 </div>
               </div>
@@ -129,9 +129,9 @@ function Home() {
 
                 {/* CTA Button */}
                 <div className="mt-4">
-                  <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-1">
+                  <div className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-1">
                     🚀 Start Learning
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>

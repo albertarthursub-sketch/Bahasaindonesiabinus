@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, storage, auth } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
 
 const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => {
   // Step states
@@ -256,7 +256,10 @@ const AIVocabularyGenerator = ({ onClose, onSave, teacherId, classes = [] }) => 
               const fileName = `ai-vocabulary/${Date.now()}-${item.bahasa || 'image'}.png`;
               const storageRef = ref(storage, fileName);
               await uploadBytes(storageRef, blob);
-              imageUrl = await getDownloadURL(storageRef);
+              // Use public URL format instead of getDownloadURL (which includes auth tokens)
+              // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media
+              const bucketName = 'bahasa-indonesia-73d67.firebasestorage.app';
+              imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(fileName)}?alt=media`;
               console.log(`✅ Uploaded image for ${item.bahasa} to Cloud Storage: ${imageUrl}`);
             } catch (err) {
               console.error(`Error uploading image for ${item.bahasa}:`, err);

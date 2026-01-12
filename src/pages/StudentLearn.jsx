@@ -295,19 +295,19 @@ function StudentLearn() {
   const getStudentImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
     
-    // If it's already a data URL or a regular HTTP URL, use directly
-    if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
-      // For Firebase Storage URLs, use the proxy endpoint
-      if (imageUrl.includes('firebasestorage.googleapis.com')) {
-        const apiUrl = import.meta.env.VITE_API_URL;
-        if (apiUrl) {
-          // Encode the URL in base64 to preserve query parameters
-          const encodedUrl = btoa(imageUrl);
-          return `${apiUrl}/api/proxy-image?url=${encodedUrl}`;
-        }
-      }
+    // If it's a data URL, use directly
+    if (imageUrl.startsWith('data:')) {
       return imageUrl;
     }
+    
+    // For HTTP/HTTPS URLs (including Firebase), use directly
+    // Firebase now allows public read access to /vocabulary and /ai-vocabulary paths
+    if (imageUrl.startsWith('http')) {
+      console.log('Using direct Firebase URL:', imageUrl.substring(0, 100) + '...');
+      return imageUrl;
+    }
+    
+    console.log('Invalid image URL format:', imageUrl);
     return null;
   };
 
