@@ -8,6 +8,8 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import ClassManagement from './pages/ClassManagement';
 import TeacherAnalytics from './pages/TeacherAnalytics';
 import TeacherResources from './pages/TeacherResources';
+import ViewSPOActivity from './pages/ViewSPOActivity';
+import ViewVocabularyList from './pages/ViewVocabularyList';
 import StudentLogin from './pages/StudentLogin';
 import StudentHome from './pages/StudentHome';
 import StudentLearn from './pages/StudentLearn';
@@ -38,6 +40,8 @@ function App() {
         <Route path="/classes" element={<ProtectedRoute element={<ClassManagement />} />} />
         <Route path="/teacher-analytics" element={<ProtectedRoute element={<TeacherAnalytics />} />} />
         <Route path="/teacher-resources" element={<ProtectedRoute element={<TeacherResources />} />} />
+        <Route path="/view-activity/:activityId" element={<ProtectedRoute element={<ViewSPOActivity />} />} />
+        <Route path="/view-vocabulary/:listId" element={<ProtectedRoute element={<ViewVocabularyList />} />} />
         
         {/* Student Routes (public) */}
         <Route path="/student" element={<StudentLogin />} />

@@ -15,10 +15,63 @@ export default function CompletionTrophy({ accuracy, timeSpent, wordCount, onCon
       setTrophy('bronze');
     }
 
+    // Play drum roll sound
+    playDrumRoll();
+
     // Start animation after component mounts
     setTimeout(() => setShowAnimation(true), 300);
     setTimeout(() => setCelebration(true), 800);
   }, [accuracy]);
+
+  const playDrumRoll = () => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioContext.currentTime;
+      
+      // Drum roll effect - rapid low frequencies
+      for (let i = 0; i < 8; i++) {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        osc.frequency.value = 150 + i * 20; // Vary frequency slightly
+        osc.type = 'sine';
+        
+        gain.gain.setValueAtTime(0.15, now + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.04);
+        
+        osc.start(now + i * 0.05);
+        osc.stop(now + i * 0.05 + 0.04);
+      }
+      
+      // Final cymbal crash sound
+      setTimeout(() => {
+        const cymbal = audioContext.createOscillator();
+        const cymbalGain = audioContext.createGain();
+        const filter = audioContext.createBiquadFilter();
+        
+        cymbal.connect(filter);
+        filter.connect(cymbalGain);
+        cymbalGain.connect(audioContext.destination);
+        
+        cymbal.frequency.setValueAtTime(400, audioContext.currentTime);
+        cymbal.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+        cymbal.type = 'triangle';
+        
+        cymbalGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        cymbalGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        filter.type = 'highpass';
+        filter.frequency.value = 8000;
+        
+        cymbal.start(audioContext.currentTime);
+        cymbal.stop(audioContext.currentTime + 0.3);
+      }, 400);
+    } catch (e) {
+      console.log('Audio context not available');
+    }
+  };
 
   const getTrophyInfo = () => {
     switch (trophy) {
@@ -54,18 +107,20 @@ export default function CompletionTrophy({ accuracy, timeSpent, wordCount, onCon
   const Confetti = () => {
     return (
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {celebration && [...Array(50)].map((_, i) => (
+        {celebration && [...Array(80)].map((_, i) => (
           <div
             key={i}
-            className="absolute animate-bounce"
+            className="absolute font-bold"
             style={{
               left: Math.random() * 100 + '%',
-              top: -10,
-              animation: `fall ${2 + Math.random() * 1}s linear forwards`,
-              animationDelay: Math.random() * 0.5 + 's'
+              top: -20,
+              fontSize: Math.random() * 20 + 16 + 'px',
+              animation: `fall ${2.5 + Math.random() * 1.5}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
+              animationDelay: Math.random() * 0.8 + 's',
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
             }}
           >
-            {['🎉', '🎊', '⭐', '✨'][Math.floor(Math.random() * 4)]}
+            {['🎉', '🎊', '⭐', '✨', '🌟', '🎈', '🎆', '🎇'][Math.floor(Math.random() * 8)]}
           </div>
         ))}
       </div>
@@ -82,19 +137,30 @@ export default function CompletionTrophy({ accuracy, timeSpent, wordCount, onCon
           }
         }
         @keyframes bounce-scale {
-          0% { transform: scale(0); }
-          50% { transform: scale(1.2); }
-          100% { transform: scale(1); }
+          0% { transform: scale(0) rotate(-180deg); }
+          50% { transform: scale(1.3) rotate(10deg); }
+          75% { transform: scale(0.95) rotate(-5deg); }
+          100% { transform: scale(1) rotate(0deg); }
         }
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-          50% { box-shadow: 0 0 40px rgba(0,0,0,0.3); }
+          0%, 100% { box-shadow: 0 0 20px rgba(0,0,0,0.1), 0 0 30px rgba(255,215,0,0.3); }
+          50% { box-shadow: 0 0 40px rgba(0,0,0,0.3), 0 0 60px rgba(255,215,0,0.6); }
         }
         @keyframes shimmer {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
+        @keyframes shake {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(2deg); }
+          75% { transform: rotate(-2deg); }
+        }
         .trophy-bounce {
+          animation: bounce-scale 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .trophy-glow {
+          animation: pulse-glow 0.8s ease-in-out infinite, shake 0.5s ease-in-out infinite;
+        }
           animation: bounce-scale 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
         .trophy-glow {

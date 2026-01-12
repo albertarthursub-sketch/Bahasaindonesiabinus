@@ -24,7 +24,6 @@ function TeacherDashboard() {
   const [teacherId, setTeacherId] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedList, setSelectedList] = useState(null);
-  const [editingListId, setEditingListId] = useState(null);
 
   useEffect(() => {
     // Check if teacher is authenticated
@@ -72,15 +71,8 @@ function TeacherDashboard() {
     }
   };
 
-  const handleEditList = (list) => {
-    setEditingListId(list.id);
-    setSelectedMode(list.mode || 'syllable');
-    
-    if (list.mode === 'image-vocabulary') {
-      setShowImageVocab(true);
-    } else {
-      setShowCreateList(true);
-    }
+  const handleViewList = (list) => {
+    navigate(`/view-vocabulary/${list.id}`);
   };
 
   const loadStudents = async (teacherId) => {
@@ -182,7 +174,7 @@ function TeacherDashboard() {
                     </p>
                     <div className="flex gap-2 flex-col">
                       <div className="flex gap-2">
-                        <button onClick={() => handleEditList(list)} className="btn btn-blue flex-1">Edit</button>
+                        <button onClick={() => handleViewList(list)} className="btn btn-blue flex-1">View</button>
                         <button onClick={() => deleteList(list.id)} className="btn btn-gray">
                           🗑️
                         </button>
@@ -295,17 +287,13 @@ function TeacherDashboard() {
         <CreateListModal
           onClose={() => {
             setShowCreateList(false);
-            setEditingListId(null);
           }}
           onSave={() => {
             setShowCreateList(false);
-            setEditingListId(null);
             loadLists(teacherId);
           }}
           teacherId={teacherId}
           classes={students}
-          editingListId={editingListId}
-          listToEdit={editingListId ? lists.find(l => l.id === editingListId) : null}
         />
       )}
 

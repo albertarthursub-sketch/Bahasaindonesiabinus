@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { Sparkles, Loader, Trash2, Copy, CheckCircle } from 'lucide-react';
+import { Sparkles, Loader, Trash2, Edit2, CheckCircle } from 'lucide-react';
 
 const SPOActivityGenerator = ({ teacherId, classId }) => {
+  const navigate = useNavigate();
   const [difficulty, setDifficulty] = useState('moderate');
   const [sentences, setSentences] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,8 +14,6 @@ const SPOActivityGenerator = ({ teacherId, classId }) => {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedSentences, setSelectedSentences] = useState([]);
-  const [editingActivityId, setEditingActivityId] = useState(null);
-  const [editingQuestions, setEditingQuestions] = useState([]);
 
   useEffect(() => {
     if (classId) {
@@ -211,46 +211,8 @@ Start with: SENTENCE 1:`
     }
   };
 
-  const startEditActivity = (activity) => {
-    setEditingActivityId(activity.id);
-    setEditingQuestions(activity.questions || []);
-    setSentences(activity.questions || []);
-    setSelectedSentences(activity.questions ? activity.questions.map((_, idx) => idx) : []);
-  };
-
-  const cancelEdit = () => {
-    setEditingActivityId(null);
-    setEditingQuestions([]);
-    setSentences([]);
-    setSelectedSentences([]);
-  };
-
-  const saveEditedActivity = async () => {
-    try {
-      setLoading(true);
-      const selectedQuestions = selectedSentences.map(idx => sentences[idx]);
-
-      if (selectedQuestions.length === 0) {
-        alert('Please select at least one sentence');
-        return;
-      }
-
-      await updateDoc(doc(db, 'spoActivities', editingActivityId), {
-        questions: selectedQuestions,
-        totalQuestions: selectedQuestions.length,
-        updatedAt: new Date().toISOString(),
-      });
-
-      setSuccessMessage('✅ Activity updated successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      cancelEdit();
-      await loadExistingActivities();
-    } catch (error) {
-      console.error('Error updating activity:', error);
-      alert('Error updating activity: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+  const startViewActivity = (activity) => {
+    navigate(`/view-activity/${activity.id}`);
   };
 
   return (
@@ -266,19 +228,6 @@ Start with: SENTENCE 1:`
       {successMessage && (
         <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded">
           {successMessage}
-        </div>
-      )}
-
-      {editingActivityId && (
-        <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-500 rounded-lg">
-          <p className="text-blue-700 font-semibold mb-2">✏️ Editing Activity</p>
-          <p className="text-sm text-blue-600 mb-3">Modify the questions for this activity below</p>
-          <button
-            onClick={cancelEdit}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium underline"
-          >
-            Cancel editing
-          </button>
         </div>
       )}
 
@@ -332,26 +281,16 @@ Start with: SENTENCE 1:`
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-gray-900">
-              {editingActivityId ? '✏️ Edit Activity Questions' : 'Generated Sentences'} ({selectedSentences.length} selected)
+              Generated Sentences ({selectedSentences.length} selected)
             </h3>
-            <div className="flex gap-2">
-              {editingActivityId && (
-                <button
-                  onClick={cancelEdit}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-all"
-                >
-                  Cancel
-                </button>
-              )}
-              <button
-                onClick={editingActivityId ? saveEditedActivity : saveSelectedSentences}
-                disabled={selectedSentences.length === 0 || loading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all flex items-center gap-2"
-              >
-                <CheckCircle size={18} />
-                {editingActivityId ? 'Update Activity' : 'Save Selected'}
-              </button>
-            </div>
+            <button
+              onClick={saveSelectedSentences}
+              disabled={selectedSentences.length === 0 || loading}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all flex items-center gap-2"
+            >
+              <CheckCircle size={18} />
+              Save Selected
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -435,9 +374,9 @@ Start with: SENTENCE 1:`
                     <button
                       onClick={() => startEditActivity(activity)}
                       className="p-2 hover:bg-blue-50 text-blue-600 rounded transition-all"
-                      title="Edit activity"
+                      title="View activity"
                     >
-                      <Copy size={18} />
+                      <Edit2 size={18} />
                     </button>
                     <button
                       onClick={() => deleteActivity(activity.id)}
