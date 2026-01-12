@@ -15,6 +15,8 @@ const SPOSentenceBuilder = ({ listId, listName }) => {
   const [selectedWords, setSelectedWords] = useState([]);
   const [accuracy, setAccuracy] = useState(0);
   const [sentenceCount, setSentenceCount] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+  const [isCorrect, setIsCorrect] = useState(false);
 
   useEffect(() => {
     generateSPOSentence();
@@ -27,6 +29,8 @@ const SPOSentenceBuilder = ({ listId, listName }) => {
     setSelectedWords([]);
     setExplanation('');
     setShowCorrectAnimation(false);
+    setAttempts(0);
+    setIsCorrect(false);
 
     try {
       const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
@@ -134,6 +138,7 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
 
     if (userFormatted.toLowerCase() === correctFormatted.toLowerCase()) {
       setShowCorrectAnimation(true);
+      setIsCorrect(true);
       setFeedback({
         type: 'success',
         message: '✓ Perfect! You got it right!',
@@ -144,9 +149,10 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
         setShowCompletion(true);
       }, 1500);
     } else {
+      setAttempts(prev => prev + 1);
       setFeedback({
         type: 'error',
-        message: `Not quite right. Try again!`,
+        message: `Not quite right. Try again! (Attempt ${attempts + 1}/3)`,
       });
       setAccuracy(0);
     }
@@ -218,21 +224,30 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
             </p>
           </div>
 
-          {/* SPO Structure Info - Hidden during practice to prevent copying */}
-          <div className="grid grid-cols-3 gap-3 mb-6 opacity-20 pointer-events-none">
-            <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
-              <p className="text-xs font-semibold text-red-600 uppercase">Subject</p>
-              <p className="text-sm font-bold text-red-700 mt-1">{sentence.subject}</p>
+          {/* SPO Structure Info - Show only after 3 attempts or when correct */}
+          {(attempts >= 3 || isCorrect) && (
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500 animate-fade-in">
+                <p className="text-xs font-semibold text-red-600 uppercase">Subject</p>
+                <p className="text-sm font-bold text-red-700 mt-1">{sentence.subject}</p>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500 animate-fade-in">
+                <p className="text-xs font-semibold text-yellow-600 uppercase">Predicate</p>
+                <p className="text-sm font-bold text-yellow-700 mt-1">{sentence.predicate}</p>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500 animate-fade-in">
+                <p className="text-xs font-semibold text-blue-600 uppercase">Object</p>
+                <p className="text-sm font-bold text-blue-700 mt-1">{sentence.object}</p>
+              </div>
             </div>
-            <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500">
-              <p className="text-xs font-semibold text-yellow-600 uppercase">Predicate</p>
-              <p className="text-sm font-bold text-yellow-700 mt-1">{sentence.predicate}</p>
+          )}
+
+          {/* Hint Indicator */}
+          {!isCorrect && attempts < 3 && (
+            <div className="mb-4 text-center text-sm text-gray-500">
+              💡 Hint available after 3 attempts
             </div>
-            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-              <p className="text-xs font-semibold text-blue-600 uppercase">Object</p>
-              <p className="text-sm font-bold text-blue-700 mt-1">{sentence.object}</p>
-            </div>
-          </div>
+          )}
 
           {/* Explanation */}
           {explanation && (
