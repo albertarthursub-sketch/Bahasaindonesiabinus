@@ -11,6 +11,7 @@ function TeacherLoginGoogle() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -75,6 +76,11 @@ function TeacherLoginGoogle() {
     setError('');
     setMessage('');
 
+    if (!name || name.trim().length < 2) {
+      setError('Please enter your name');
+      return;
+    }
+
     if (!email || !password) {
       setError('Please enter email and password');
       return;
@@ -96,6 +102,7 @@ function TeacherLoginGoogle() {
       // Create teacher record in Firestore
       await setDoc(doc(db, 'teachers', user.uid), {
         email: user.email,
+        name: name,
         createdAt: new Date(),
         lastLogin: new Date(),
         status: 'active',
@@ -104,6 +111,7 @@ function TeacherLoginGoogle() {
 
       sessionStorage.setItem('authToken', user.uid);
       sessionStorage.setItem('teacherEmail', user.email);
+      sessionStorage.setItem('teacherName', name);
 
       setMessage('✅ Account created! Please check your email to verify your account before logging in.');
       setTimeout(() => {
@@ -177,8 +185,10 @@ function TeacherLoginGoogle() {
       }
 
       sessionStorage.setItem('authToken', user.uid);
-      sessionStorage.setItem('teacherEmail', user.email);
-
+      sessionStorage.setItem('teacherEmail', user.email);      // Store teacher name if available
+      if (user.displayName) {
+        sessionStorage.setItem('teacherName', user.displayName);
+      }
       setMessage('✅ Google login successful! Redirecting...');
       setTimeout(() => {
         navigate('/teacher');
@@ -224,6 +234,23 @@ function TeacherLoginGoogle() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name - Only show on sign up */}
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  👤 Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={loading}
+                />
+              </div>
+            )}
+
             {/* Email */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -260,7 +287,7 @@ function TeacherLoginGoogle() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (isSignUp && (!name || !email || !password))}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold py-3 rounded-lg transition-all shadow-lg hover:shadow-xl"
             >
               {loading ? '⏳ Processing...' : isSignUp ? '✅ Create Account' : '✅ Login'}
@@ -299,6 +326,9 @@ function TeacherLoginGoogle() {
                 setIsSignUp(!isSignUp);
                 setError('');
                 setMessage('');
+                setEmail('');
+                setPassword('');
+                setName('');
               }}
               className="text-purple-600 hover:text-purple-700 font-bold text-sm"
             >

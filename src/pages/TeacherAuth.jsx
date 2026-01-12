@@ -56,6 +56,10 @@ function TeacherAuth() {
         await signInWithCustomToken(auth, data.token);
         sessionStorage.setItem('authToken', data.token);
         sessionStorage.setItem('teacherEmail', data.email);
+        // Store teacher name if provided
+        if (data.name) {
+          sessionStorage.setItem('teacherName', data.name);
+        }
         
         setMessage('✅ Login successful! Redirecting...');
         setTimeout(() => {

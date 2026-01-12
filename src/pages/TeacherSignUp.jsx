@@ -40,13 +40,15 @@ function TeacherSignUp() {
       const response = await fetch(SEND_OTP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, name })
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
         setOtpSent(true);
+        // Store name in sessionStorage for later use
+        sessionStorage.setItem('teacherName', name);
         setMessage('✅ OTP sent to your email! Check your inbox.');
       } else {
         setError(data.error || 'Failed to send OTP');

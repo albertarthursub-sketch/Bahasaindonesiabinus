@@ -21,6 +21,7 @@ function TeacherDashboard() {
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [selectedMode, setSelectedMode] = useState(null);
   const [teacherEmail, setTeacherEmail] = useState('');
+  const [teacherName, setTeacherName] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedList, setSelectedList] = useState(null);
@@ -28,6 +29,7 @@ function TeacherDashboard() {
   useEffect(() => {
     // Check if teacher is authenticated
     const email = sessionStorage.getItem('teacherEmail');
+    const name = sessionStorage.getItem('teacherName');
     const token = sessionStorage.getItem('authToken');
     
     if (!token || !email) {
@@ -36,6 +38,7 @@ function TeacherDashboard() {
     }
     
     setTeacherEmail(email);
+    setTeacherName(name || '');
     setTeacherId(token); // Use token as teacher ID (Firebase UID)
     loadLists(token);
     loadStudents(token);
@@ -98,6 +101,7 @@ function TeacherDashboard() {
   const handleLogout = () => {
     sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('teacherEmail');
+    sessionStorage.removeItem('teacherName');
     navigate('/');
   };
 
@@ -108,7 +112,7 @@ function TeacherDashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Teacher Dashboard</h1>
-              <p className="text-gray-600">👋 Welcome, {teacherEmail}</p>
+              <p className="text-gray-600">👋 Welcome, {teacherName || teacherEmail}</p>
             </div>
             <div className="flex gap-3">
               <button onClick={handleLogout} className="btn btn-red">🚪 Logout</button>
