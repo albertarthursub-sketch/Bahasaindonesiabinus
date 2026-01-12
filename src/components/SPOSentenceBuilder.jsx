@@ -206,22 +206,18 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
         </div>
       ) : (
         <>
-          {/* Sentence Display with Audio - Hidden text but audio still works */}
+          {/* Audio Only - No blurred text */}
           <div className="bg-white rounded-lg p-6 mb-6 border-2 border-green-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-700">Listen to the sentence:</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-700">📢 Listen to the sentence:</h3>
               <button
                 onClick={speakSentence}
-                className="p-2 bg-blue-100 hover:bg-blue-200 rounded-full transition-all"
+                className="p-3 bg-blue-100 hover:bg-blue-200 rounded-full transition-all transform hover:scale-110"
                 title="Play pronunciation"
               >
-                <Volume2 size={24} className="text-blue-600" />
+                <Volume2 size={28} className="text-blue-600" />
               </button>
             </div>
-            {/* Sentence text is hidden - students must unscramble words to see it */}
-            <p className="text-2xl font-bold text-gray-300 text-center py-3 font-serif">
-              ••• •••• ••••
-            </p>
           </div>
 
           {/* SPO Structure Info - Show only after 3 attempts or when correct */}
@@ -246,15 +242,6 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
           {!isCorrect && attempts < 3 && (
             <div className="mb-4 text-center text-sm text-gray-500">
               💡 Hint available after 3 attempts
-            </div>
-          )}
-
-          {/* Explanation */}
-          {explanation && (
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">💡 How it works:</span> {explanation}
-              </p>
             </div>
           )}
 
