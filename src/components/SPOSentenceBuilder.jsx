@@ -220,24 +220,6 @@ EXPLANATION: Subject (Kucing/cat) performs an action (makan/eat) on the object (
             </div>
           </div>
 
-          {/* SPO Structure Info - Show only after 3 attempts or when correct */}
-          {(attempts >= 3 || isCorrect) && (
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500 animate-fade-in">
-                <p className="text-xs font-semibold text-red-600 uppercase">Subject</p>
-                <p className="text-sm font-bold text-red-700 mt-1">{sentence.subject}</p>
-              </div>
-              <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500 animate-fade-in">
-                <p className="text-xs font-semibold text-yellow-600 uppercase">Predicate</p>
-                <p className="text-sm font-bold text-yellow-700 mt-1">{sentence.predicate}</p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500 animate-fade-in">
-                <p className="text-xs font-semibold text-blue-600 uppercase">Object</p>
-                <p className="text-sm font-bold text-blue-700 mt-1">{sentence.object}</p>
-              </div>
-            </div>
-          )}
-
           {/* Hint Indicator */}
           {!isCorrect && attempts < 3 && (
             <div className="mb-4 text-center text-sm text-gray-500">
