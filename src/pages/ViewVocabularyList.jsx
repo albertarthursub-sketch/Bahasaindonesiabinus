@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, Loader, Image as ImageIcon } from 'lucide-react';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { ArrowLeft, Loader, Image as ImageIcon, Trash2, Edit } from 'lucide-react';
 
 const ViewVocabularyList = () => {
   const { listId } = useParams();
   const navigate = useNavigate();
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadList();
@@ -30,6 +31,22 @@ const ViewVocabularyList = () => {
       navigate('/teacher');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this vocabulary list? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await deleteDoc(doc(db, 'lists', listId));
+      navigate('/teacher');
+    } catch (error) {
+      console.error('Error deleting list:', error);
+      alert('Error deleting list: ' + error.message);
+      setDeleting(false);
     }
   };
 
@@ -162,13 +179,37 @@ const ViewVocabularyList = () => {
           )}
         </div>
 
-        {/* Back Button */}
-        <div className="flex gap-4">
+        {/* Action Buttons */}
+        <div className="flex gap-4 sticky bottom-6">
           <button
             onClick={() => navigate('/teacher')}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-all"
+            className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg hover:bg-gray-500 font-semibold transition-all"
           >
             ← Back to Dashboard
+          </button>
+          <button
+            onClick={() => navigate('/teacher')}
+            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-all flex items-center justify-center gap-2"
+          >
+            <Edit size={20} />
+            Edit List
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-semibold transition-all flex items-center justify-center gap-2"
+          >
+            {deleting ? (
+              <>
+                <Loader className="animate-spin" size={20} />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 size={20} />
+                Delete
+              </>
+            )}
           </button>
         </div>
       </div>
