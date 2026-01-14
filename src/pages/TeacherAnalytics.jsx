@@ -75,9 +75,12 @@ function TeacherAnalytics() {
       );
       const progressSnapshot = await getDocs(progressQuery);
       
+      console.log(`📊 Progress loaded for student ${studentId}:`, progressSnapshot.docs.length, 'documents');
+      
       const progressData = {};
       progressSnapshot.docs.forEach(doc => {
         const data = doc.data();
+        console.log('Progress entry:', data);
         if (!progressData[data.listId]) {
           progressData[data.listId] = [];
         }
@@ -87,6 +90,7 @@ function TeacherAnalytics() {
         });
       });
 
+      console.log('Final progress data:', progressData);
       setStudentProgress(progressData);
       setSelectedStudent(studentId);
     } catch (error) {
@@ -97,7 +101,7 @@ function TeacherAnalytics() {
   };
 
   const calculateStats = () => {
-    if (!studentProgress) return null;
+    if (!studentProgress || Object.keys(studentProgress).length === 0) return null;
 
     let totalAttempts = 0;
     let correctAttempts = 0;
@@ -116,7 +120,7 @@ function TeacherAnalytics() {
         name: listData.title,
         correct: listCorrect,
         total: listTotal,
-        percentage: Math.round((listCorrect / listTotal) * 100),
+        percentage: listTotal > 0 ? Math.round((listCorrect / listTotal) * 100) : 0,
         stars: listStars,
         attempts: attempts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       };
@@ -125,6 +129,9 @@ function TeacherAnalytics() {
       correctAttempts += listCorrect;
       totalStars += listStars;
     });
+
+    // Return null if no attempts made
+    if (totalAttempts === 0) return null;
 
     return {
       overallPercentage: Math.round((correctAttempts / totalAttempts) * 100),

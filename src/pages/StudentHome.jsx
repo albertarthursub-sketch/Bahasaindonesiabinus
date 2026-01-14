@@ -13,20 +13,27 @@ function StudentHome() {
   const [selectedSPOActivity, setSelectedSPOActivity] = useState(null);
 
   useEffect(() => {
+    // Check if student is already logged in (from previous session)
     const studentData = JSON.parse(sessionStorage.getItem('student'));
     if (!studentData) {
       console.warn('⚠️  No student data in session, redirecting to login');
-      navigate('/student');
+      navigate('/student', { replace: true });
       return;
     }
     console.log('✅ Student logged in:', studentData.name);
     setStudent(studentData);
     loadLists(studentData.classId);
     loadSPOActivities(studentData.classId);
-  }, [navigate]);
+    
+    // Cleanup - preserve student session when leaving this page
+    return () => {
+      console.log('💾 StudentHome: Preserving student session in storage');
+    };
+  }, []); // Empty dependency array - only run on component mount, not on re-renders
 
   const loadLists = async (classId) => {
     try {
+      console.log('📚 Loading vocabulary lists for classId:', classId);
       // Load only lists assigned to this class
       const assignmentsQuery = query(
         collection(db, 'assignments'),
@@ -34,6 +41,8 @@ function StudentHome() {
       );
       const assignmentsSnapshot = await getDocs(assignmentsQuery);
       const listIds = assignmentsSnapshot.docs.map(doc => doc.data().listId);
+      
+      console.log('✅ Found', listIds.length, 'assignments for class');
       
       if (listIds.length === 0) {
         console.log('ℹ️ No assignments found for this class');
@@ -54,13 +63,18 @@ function StudentHome() {
             });
           }
         } catch (error) {
-          console.error(`Error loading list ${listId}:`, error);
+          console.error(`❌ Error loading list ${listId}:`, error);
         }
       }
-      console.log('✅ Loaded vocabulary lists for class:', loadedLists);
+      console.log('✅ Loaded vocabulary lists:', loadedLists.length, 'total');
       setLists(loadedLists);
     } catch (error) {
-      console.error('Error loading lists:', error);
+      console.error('❌ Error loading lists:', {
+        message: error.message,
+        code: error.code,
+        classId,
+        fullError: error
+      });
     } finally {
       setLoading(false);
     }
@@ -68,16 +82,22 @@ function StudentHome() {
 
   const loadSPOActivities = async (classId) => {
     try {
+      console.log('📦 Loading SPO activities for classId:', classId);
       const q = query(collection(db, 'spoActivities'), where('classId', '==', classId));
       const snapshot = await getDocs(q);
       const activities = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      console.log('✅ Loaded SPO activities:', activities);
+      console.log('✅ Loaded SPO activities:', activities.length, 'found');
       setSpoActivities(activities);
     } catch (error) {
-      console.error('Error loading SPO activities:', error);
+      console.error('❌ Error loading SPO activities:', {
+        message: error.message,
+        code: error.code,
+        classId,
+        fullError: error
+      });
     }
   };
 

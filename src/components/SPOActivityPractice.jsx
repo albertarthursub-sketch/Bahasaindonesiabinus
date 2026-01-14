@@ -79,9 +79,14 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
   };
 
   const handleContinue = () => {
-    console.log('handleContinue called, navigating to /student-home');
+    console.log('✅ handleContinue called, navigating back to /student-home');
+    console.log('📦 Student session in storage:', sessionStorage.getItem('student') ? 'YES' : 'NO');
     setShowCompletion(false);
     setTimeout(() => {
+      // Make sure student session is preserved before navigating
+      if (!sessionStorage.getItem('student')) {
+        console.error('❌ CRITICAL: Student session lost!');
+      }
       navigate('/student-home', { replace: true });
     }, 300);
   };

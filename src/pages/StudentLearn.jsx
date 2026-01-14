@@ -542,8 +542,13 @@ function StudentLearn() {
           timeSpent={completionTime}
           wordCount={list.words.length}
           onContinue={() => {
+            console.log('✅ Learning completed, navigating back to /student-home');
+            console.log('📦 Student session in storage:', sessionStorage.getItem('student') ? 'YES' : 'NO');
             // Small delay to ensure state is properly saved, then navigate
             setTimeout(() => {
+              if (!sessionStorage.getItem('student')) {
+                console.error('❌ CRITICAL: Student session lost!');
+              }
               navigate('/student-home', { replace: true });
             }, 500);
           }}

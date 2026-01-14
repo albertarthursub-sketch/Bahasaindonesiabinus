@@ -20,31 +20,53 @@ function StudentLogin() {
     setLoading(true);
 
     try {
-      const upperCode = code.toUpperCase();
+      if (!code.trim()) {
+        setError('Please enter your login code.');
+        setLoading(false);
+        return;
+      }
+
+      const upperCode = code.toUpperCase().trim();
+      console.log('🔍 Looking up student with code:', upperCode);
+      
       const q = query(collection(db, 'students'), where('loginCode', '==', upperCode));
       const snapshot = await getDocs(q);
 
+      console.log('✅ Query result:', snapshot.docs.length, 'student(s) found');
+
       if (snapshot.empty) {
-        setError('Invalid code. Please try again.');
+        setError('Invalid code. Please check and try again.');
         setLoading(false);
         return;
       }
 
       const studentData = snapshot.docs[0].data();
+      console.log('✅ Student found:', studentData.name);
       setStudentName(studentData.name);
       setStep(2); // Move to avatar selection
     } catch (err) {
-      setError('Error logging in. Please try again.');
-      console.error(err);
+      console.error('❌ Login error details:', {
+        message: err.message,
+        code: err.code,
+        fullError: err
+      });
+      setError(`Error logging in: ${err.message || 'Unknown error'}. Please try again.`);
     }
     setLoading(false);
   };
 
   const handleAvatarSelect = async () => {
     try {
-      const upperCode = code.toUpperCase();
+      const upperCode = code.toUpperCase().trim();
       const q = query(collection(db, 'students'), where('loginCode', '==', upperCode));
       const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        setError('Student session expired. Please log in again.');
+        setStep(1);
+        setCode('');
+        return;
+      }
 
       const studentData = snapshot.docs[0].data();
       
@@ -54,11 +76,12 @@ function StudentLogin() {
         avatar: selectedAvatar
       }));
 
+      console.log('✅ Student session started:', studentData.name);
       // Navigate to home page to select a vocabulary list
       navigate('/student-home');
     } catch (err) {
-      setError('Error starting session. Please try again.');
-      console.error(err);
+      console.error('❌ Avatar selection error:', err);
+      setError(`Error starting session: ${err.message || 'Unknown error'}. Please try again.`);
     }
   };
 
