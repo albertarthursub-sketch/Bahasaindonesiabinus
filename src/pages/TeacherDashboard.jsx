@@ -8,6 +8,7 @@ import AddVocabularyWithImage from '../components/AddVocabularyWithImage';
 import AIVocabularyGenerator from '../components/AIVocabularyGenerator';
 import AssignActivityModal from '../components/AssignActivityModal';
 import SPOActivityGenerator from '../components/SPOActivityGenerator';
+import HelpSystem from '../components/HelpSystem';
 
 function TeacherDashboard() {
   const navigate = useNavigate();
@@ -322,6 +323,9 @@ function TeacherDashboard() {
           classes={students}
         />
       )}
+
+      {/* Help System - Floating Button */}
+      <HelpSystem />
     </div>
   );
 }

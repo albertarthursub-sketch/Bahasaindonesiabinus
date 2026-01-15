@@ -1,0 +1,178 @@
+import React, { useState, useMemo } from 'react';
+import { MessageCircle, X, Search } from 'lucide-react';
+import helpContent from '../data/helpContent';
+
+const HelpSystem = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [expandedFAQ, setExpandedFAQ] = useState(null);
+
+  // Get unique categories
+  const categories = useMemo(() => {
+    return [...new Set(helpContent.faqs.map(faq => faq.category))];
+  }, []);
+
+  // Filter FAQs based on search query and selected category
+  const filteredFAQs = useMemo(() => {
+    return helpContent.faqs.filter(faq => {
+      const matchesSearch = 
+        faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || faq.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, selectedCategory]);
+
+  return (
+    <>
+      {/* Floating Help Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-40 p-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
+        title="Help & Documentation"
+      >
+        <MessageCircle size={28} />
+      </button>
+
+      {/* Help Modal */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-xl flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">📚 Help & Documentation</h2>
+                <p className="text-blue-100 text-sm">Find answers to your questions</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  setSearchQuery('');
+                  setSelectedCategory(null);
+                  setExpandedFAQ(null);
+                }}
+                className="hover:bg-white/20 p-2 rounded-lg transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Search Bar */}
+              <div className="p-6 border-b">
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search help topics..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setSelectedCategory(null);
+                    }}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Category Tabs */}
+              <div className="px-6 py-4 border-b bg-gray-50">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Categories:</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory(null);
+                      setSearchQuery('');
+                      setExpandedFAQ(null);
+                    }}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+                      selectedCategory === null
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    All Topics
+                  </button>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setSearchQuery('');
+                        setExpandedFAQ(null);
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+                        selectedCategory === category
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* FAQs List */}
+              <div className="p-6 space-y-3">
+                {filteredFAQs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No results found</p>
+                    <p className="text-gray-400 text-sm">Try different search terms</p>
+                  </div>
+                ) : (
+                  filteredFAQs.map(faq => (
+                    <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-400 transition">
+                      <button
+                        onClick={() => setExpandedFAQ(expandedFAQ === faq.id ? null : faq.id)}
+                        className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 transition flex justify-between items-start gap-3"
+                      >
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800 text-sm mb-1">{faq.question}</p>
+                          <p className="text-xs text-blue-600 font-medium">{faq.category}</p>
+                        </div>
+                        <span className={`text-blue-500 flex-shrink-0 transition transform ${expandedFAQ === faq.id ? 'rotate-180' : ''}`}>
+                          ▼
+                        </span>
+                      </button>
+                      
+                      {expandedFAQ === faq.id && (
+                        <div className="p-4 bg-white border-t border-gray-200">
+                          <div className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">
+                            {faq.answer}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-4 bg-gray-50 rounded-b-xl flex justify-between items-center">
+              <p className="text-xs text-gray-600">
+                {filteredFAQs.length} result{filteredFAQs.length !== 1 ? 's' : ''} found
+              </p>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  setSearchQuery('');
+                  setSelectedCategory(null);
+                  setExpandedFAQ(null);
+                }}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default HelpSystem;

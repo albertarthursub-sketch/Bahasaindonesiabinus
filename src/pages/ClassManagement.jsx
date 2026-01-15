@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import StudentCodeCardPrinter from '../components/StudentCodeCardPrinter';
+import HelpSystem from '../components/HelpSystem';
 
 function ClassManagement() {
   const navigate = useNavigate();
@@ -891,6 +892,9 @@ function ClassManagement() {
           </div>
         </div>
       )}
+
+      {/* Help System - Floating Button */}
+      <HelpSystem />
     </div>
   );
 }
