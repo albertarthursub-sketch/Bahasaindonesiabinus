@@ -1,22 +1,29 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { MessageCircle, X, Search, Eye, EyeOff } from 'lucide-react';
+import { MessageCircle, X, Search, EyeOff } from 'lucide-react';
 import helpContent from '../data/helpContent';
 import '../styles/helpAnimation.css';
 
 const HelpSystem = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedFAQ, setExpandedFAQ] = useState(null);
 
   // Initialize from localStorage on mount
   useEffect(() => {
+    setIsMounted(true);
     const savedHiddenState = localStorage.getItem('helpButtonHidden');
     if (savedHiddenState === 'true') {
       setIsHidden(true);
     }
   }, []);
+
+  // Don't render until mounted to avoid hydration issues
+  if (!isMounted) {
+    return null;
+  }
 
   // Save hidden state to localStorage
   const toggleHidden = () => {
@@ -41,7 +48,7 @@ const HelpSystem = () => {
     });
   }, [searchQuery, selectedCategory]);
 
-  // Don't render if hidden
+  // Show hidden button when isHidden is true
   if (isHidden) {
     return (
       <button
