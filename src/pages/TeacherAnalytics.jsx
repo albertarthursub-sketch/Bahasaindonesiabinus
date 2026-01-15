@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import StudentAnalyticsCard from '../components/StudentAnalyticsCard';
@@ -101,7 +101,10 @@ function TeacherAnalytics() {
   };
 
   const calculateStats = () => {
-    if (!studentProgress || Object.keys(studentProgress).length === 0) return null;
+    if (!studentProgress || Object.keys(studentProgress).length === 0) {
+      console.log('⚠️ No student progress data available');
+      return null;
+    }
 
     let totalAttempts = 0;
     let correctAttempts = 0;
@@ -110,7 +113,10 @@ function TeacherAnalytics() {
 
     Object.entries(studentProgress).forEach(([listId, attempts]) => {
       const listData = lists[listId];
-      if (!listData) return;
+      if (!listData) {
+        console.warn(`⚠️ List data not found for listId: ${listId}`);
+        return;
+      }
 
       const listCorrect = attempts.filter(a => a.correct).length;
       const listTotal = attempts.length;
@@ -131,22 +137,32 @@ function TeacherAnalytics() {
     });
 
     // Return null if no attempts made
-    if (totalAttempts === 0) return null;
+    if (totalAttempts === 0) {
+      console.log('⚠️ Total attempts is 0');
+      return null;
+    }
 
-    return {
+    const result = {
       overallPercentage: Math.round((correctAttempts / totalAttempts) * 100),
       totalAttempts,
       correctAttempts,
       totalStars,
       listStats
     };
+    
+    console.log('✅ Stats calculated:', result);
+    return result;
   };
 
   const getStudentName = (studentId) => {
     return students.find(s => s.id === studentId)?.name || 'Unknown';
   };
 
-  const stats = calculateStats();
+  // Use useMemo to properly compute stats when dependencies change
+  const stats = useMemo(() => {
+    console.log('🔄 Recalculating stats with studentProgress:', studentProgress, 'lists:', lists);
+    return calculateStats();
+  }, [studentProgress, lists]);
 
   return (
     <div className="min-h-screen bg-gray-50">
