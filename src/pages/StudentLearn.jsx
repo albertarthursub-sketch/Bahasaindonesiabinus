@@ -320,7 +320,8 @@ function StudentLearn() {
         studentAvatar={student?.avatar}
         listTitle={list.title}
         onComplete={() => {
-          navigate('/student');
+          console.log('✅ Image vocabulary learning completed');
+          navigate('/student-home');
         }}
       />
     );
@@ -544,13 +545,12 @@ function StudentLearn() {
           onContinue={() => {
             console.log('✅ Learning completed, navigating back to /student-home');
             console.log('📦 Student session in storage:', sessionStorage.getItem('student') ? 'YES' : 'NO');
-            // Small delay to ensure state is properly saved, then navigate
-            setTimeout(() => {
-              if (!sessionStorage.getItem('student')) {
-                console.error('❌ CRITICAL: Student session lost!');
-              }
-              navigate('/student-home', { replace: true });
-            }, 500);
+            // Ensure session is preserved before navigating
+            if (!sessionStorage.getItem('student')) {
+              console.error('❌ CRITICAL: Student session lost!');
+            }
+            // Don't use replace: true - keep history intact
+            navigate('/student-home');
           }}
         />
       )}

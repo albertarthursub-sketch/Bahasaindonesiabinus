@@ -79,16 +79,28 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
   };
 
   const handleContinue = () => {
-    console.log('✅ handleContinue called, navigating back to /student-home');
+    console.log('✅ handleContinue called, calling onComplete callback');
     console.log('📦 Student session in storage:', sessionStorage.getItem('student') ? 'YES' : 'NO');
+    
+    // Reset all state before closing the completion modal
     setShowCompletion(false);
-    setTimeout(() => {
-      // Make sure student session is preserved before navigating
+    setCurrentQuestionIndex(0);
+    setUserSentence('');
+    setSelectedWords([]);
+    setFeedback(null);
+    setAttempts(0);
+    setCompletedQuestions([]);
+    
+    // Call the onComplete callback which will be handled by parent component
+    if (onComplete) {
+      onComplete();
+    } else {
+      // Fallback: navigate back without replace to preserve history
       if (!sessionStorage.getItem('student')) {
         console.error('❌ CRITICAL: Student session lost!');
       }
-      navigate('/student-home', { replace: true });
-    }, 300);
+      navigate('/student-home');
+    }
   };
 
   const speakSentence = () => {

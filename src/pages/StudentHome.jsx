@@ -11,17 +11,22 @@ function StudentHome() {
   const [spoActivities, setSpoActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSPOActivity, setSelectedSPOActivity] = useState(null);
+  const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
 
   useEffect(() => {
     // Check if student is already logged in (from previous session)
     const studentData = JSON.parse(sessionStorage.getItem('student'));
     if (!studentData) {
       console.warn('⚠️  No student data in session, redirecting to login');
-      navigate('/student', { replace: true });
+      // Add delay to ensure any pending updates complete
+      setTimeout(() => {
+        navigate('/student', { replace: true });
+      }, 100);
       return;
     }
     console.log('✅ Student logged in:', studentData.name);
     setStudent(studentData);
+    setSessionCheckComplete(true);
     loadLists(studentData.classId);
     loadSPOActivities(studentData.classId);
     
@@ -115,6 +120,17 @@ function StudentHome() {
   };
 
   if (!student) {
+    // Show loading while session is being checked
+    if (!sessionCheckComplete) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">📚</div>
+            <p className="text-gray-600">Loading your session...</p>
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 
@@ -133,10 +149,9 @@ function StudentHome() {
             activityId={selectedSPOActivity.id}
             activity={selectedSPOActivity}
             onComplete={() => {
+              console.log('✅ SPO Activity completed, preserving student session');
+              console.log('📦 Student session before state update:', sessionStorage.getItem('student') ? 'YES' : 'NO');
               setSelectedSPOActivity(null);
-              setTimeout(() => {
-                navigate('/student-home', { replace: true });
-              }, 500);
             }}
           />
         </div>
