@@ -15,7 +15,6 @@ import StudentHome from './pages/StudentHome';
 import StudentLearn from './pages/StudentLearn';
 import SPOSentenceActivity from './pages/SPOSentenceActivity';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import HelpSystem from './components/HelpSystem';
 
 // Protected route component for teacher-only pages
 function ProtectedRoute({ element }) {
@@ -27,8 +26,6 @@ function App() {
   return (
     <BrowserRouter>
       <PWAInstallPrompt />
-      {/* Global Help System - visible on all pages */}
-      <HelpSystem />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/setup" element={<FirebaseSetup />} />
