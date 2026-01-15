@@ -1,13 +1,29 @@
-import React, { useState, useMemo } from 'react';
-import { MessageCircle, X, Search } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { MessageCircle, X, Search, Eye, EyeOff } from 'lucide-react';
 import helpContent from '../data/helpContent';
 import '../styles/helpAnimation.css';
 
 const HelpSystem = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedFAQ, setExpandedFAQ] = useState(null);
+
+  // Initialize from localStorage on mount
+  useEffect(() => {
+    const savedHiddenState = localStorage.getItem('helpButtonHidden');
+    if (savedHiddenState === 'true') {
+      setIsHidden(true);
+    }
+  }, []);
+
+  // Save hidden state to localStorage
+  const toggleHidden = () => {
+    const newState = !isHidden;
+    setIsHidden(newState);
+    localStorage.setItem('helpButtonHidden', newState.toString());
+  };
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -24,6 +40,19 @@ const HelpSystem = () => {
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, selectedCategory]);
+
+  // Don't render if hidden
+  if (isHidden) {
+    return (
+      <button
+        onClick={toggleHidden}
+        className="fixed bottom-6 right-6 z-40 p-3 bg-gray-400 hover:bg-gray-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
+        title="Show Help"
+      >
+        <EyeOff size={24} />
+      </button>
+    );
+  }
 
   return (
     <>
@@ -51,25 +80,32 @@ const HelpSystem = () => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-xl flex justify-between items-center">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-xl flex justify-between items-center gap-4">
               <div>
                 <h2 className="text-2xl font-bold">📚 Help & Documentation</h2>
                 <p className="text-blue-100 text-sm">Find answers to your questions</p>
               </div>
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  setSearchQuery('');
-                  setSelectedCategory(null);
-                  setExpandedFAQ(null);
-                }}
-                className="hover:bg-white/20 p-2 rounded-lg transition"
-              >
-                <X size={24} />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={toggleHidden}
+                  className="hover:bg-white/20 p-2 rounded-lg transition"
+                  title="Hide help button from all pages"
+                >
+                  <EyeOff size={20} />
+                </button>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setSearchQuery('');
+                    setSelectedCategory(null);
+                    setExpandedFAQ(null);
+                  }}
+                  className="hover:bg-white/20 p-2 rounded-lg transition"
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
-
-            {/* Content */}
             <div className="flex-1 overflow-y-auto">
               {/* Search Bar */}
               <div className="p-6 border-b">
