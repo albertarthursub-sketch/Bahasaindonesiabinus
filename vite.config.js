@@ -11,5 +11,8 @@ export default defineConfig({
       port: 3000,
       protocol: 'ws'
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 1000
   }
 });
