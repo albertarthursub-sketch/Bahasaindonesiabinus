@@ -79,28 +79,37 @@ const SPOActivityPractice = ({ activity, onComplete }) => {
   };
 
   const handleContinue = () => {
-    console.log('✅ handleContinue called, calling onComplete callback');
+    console.log('✅ handleContinue called');
     console.log('📦 Student session in storage:', sessionStorage.getItem('student') ? 'YES' : 'NO');
     
-    // Reset all state before closing the completion modal
+    // Close the completion modal first
     setShowCompletion(false);
-    setCurrentQuestionIndex(0);
-    setUserSentence('');
-    setSelectedWords([]);
-    setFeedback(null);
-    setAttempts(0);
-    setCompletedQuestions([]);
     
-    // Call the onComplete callback which will be handled by parent component
-    if (onComplete) {
-      onComplete();
-    } else {
-      // Fallback: navigate back without replace to preserve history
-      if (!sessionStorage.getItem('student')) {
-        console.error('❌ CRITICAL: Student session lost!');
+    // Use a small delay to allow modal to close before triggering callback
+    // This prevents the component from unmounting before React can process state updates
+    setTimeout(() => {
+      // Reset all state
+      setCurrentQuestionIndex(0);
+      setUserSentence('');
+      setSelectedWords([]);
+      setFeedback(null);
+      setAttempts(0);
+      setCompletedQuestions([]);
+      setScrambledWords([]);
+      
+      // Call the onComplete callback after state is reset
+      if (onComplete) {
+        console.log('🔔 Calling onComplete callback');
+        onComplete();
+      } else {
+        // Fallback: navigate back
+        console.log('📍 No onComplete callback, navigating to /student-home');
+        if (!sessionStorage.getItem('student')) {
+          console.error('❌ CRITICAL: Student session lost!');
+        }
+        navigate('/student-home');
       }
-      navigate('/student-home');
-    }
+    }, 150);
   };
 
   const speakSentence = () => {

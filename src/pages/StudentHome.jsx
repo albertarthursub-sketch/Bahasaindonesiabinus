@@ -151,7 +151,10 @@ function StudentHome() {
             onComplete={() => {
               console.log('✅ SPO Activity completed, preserving student session');
               console.log('📦 Student session before state update:', sessionStorage.getItem('student') ? 'YES' : 'NO');
-              setSelectedSPOActivity(null);
+              // Use a small delay to ensure all state resets are complete before clearing the activity
+              setTimeout(() => {
+                setSelectedSPOActivity(null);
+              }, 100);
             }}
           />
         </div>
