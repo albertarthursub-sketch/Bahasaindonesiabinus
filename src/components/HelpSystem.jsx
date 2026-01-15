@@ -9,12 +9,18 @@ const HelpSystem = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedFAQ, setExpandedFAQ] = useState(null);
+  const [error, setError] = useState(null);
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    const savedHiddenState = localStorage.getItem('helpButtonHidden');
-    if (savedHiddenState === 'true') {
-      setIsHidden(true);
+    try {
+      const savedHiddenState = localStorage.getItem('helpButtonHidden');
+      if (savedHiddenState === 'true') {
+        setIsHidden(true);
+      }
+    } catch (err) {
+      console.error('HelpSystem localStorage error:', err);
+      setError('Help system error');
     }
   }, []);
 
@@ -27,18 +33,33 @@ const HelpSystem = () => {
 
   // Get unique categories
   const categories = useMemo(() => {
-    return [...new Set(helpContent.faqs.map(faq => faq.category))];
+    try {
+      if (!helpContent || !helpContent.faqs) {
+        console.error('helpContent not available');
+        return [];
+      }
+      return [...new Set(helpContent.faqs.map(faq => faq.category))];
+    } catch (err) {
+      console.error('HelpSystem categories error:', err);
+      return [];
+    }
   }, []);
 
   // Filter FAQs based on search query and selected category
   const filteredFAQs = useMemo(() => {
-    return helpContent.faqs.filter(faq => {
-      const matchesSearch = 
-        faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || faq.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
+    try {
+      if (!helpContent || !helpContent.faqs) return [];
+      return helpContent.faqs.filter(faq => {
+        const matchesSearch = 
+          faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = !selectedCategory || faq.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      });
+    } catch (err) {
+      console.error('HelpSystem filter error:', err);
+      return [];
+    }
   }, [searchQuery, selectedCategory]);
 
   // Show hidden button when isHidden is true
