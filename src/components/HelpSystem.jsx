@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MessageCircle, X, Search } from 'lucide-react';
 import helpContent from '../data/helpContent';
+import '../styles/helpAnimation.css';
 
 const HelpSystem = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,14 +27,24 @@ const HelpSystem = () => {
 
   return (
     <>
-      {/* Floating Help Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 p-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
-        title="Help & Documentation"
-      >
-        <MessageCircle size={28} />
-      </button>
+      {/* Floating Help Button with Animated Label */}
+      <div className="fixed bottom-6 right-6 z-40 group">
+        {/* Animated Background Pulse */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 animate-pulse"></div>
+        
+        <button
+          onClick={() => setIsOpen(true)}
+          className="relative p-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110"
+          title="Help & Documentation"
+        >
+          <MessageCircle size={28} />
+        </button>
+
+        {/* Animated Text Label */}
+        <div className="absolute bottom-full right-0 mb-3 px-3 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-bold rounded-lg shadow-lg pointer-events-none whitespace-nowrap animate-bounce-subtle">
+          ✨ Need Help? Click Me! →
+        </div>
+      </div>
 
       {/* Help Modal */}
       {isOpen && (
