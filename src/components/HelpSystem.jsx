@@ -82,149 +82,159 @@ const HelpSystem = () => {
         </div>
       </div>
 
-      {/* Help Modal */}
+      {/* Backdrop Overlay */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-xl flex justify-between items-center gap-4">
-              <div>
-                <h2 className="text-2xl font-bold">📚 Help & Documentation</h2>
-                <p className="text-blue-100 text-sm">Find answers to your questions</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={toggleHidden}
-                  className="hover:bg-white/20 p-2 rounded-lg transition"
-                  title="Hide help button from all pages"
-                >
-                  <EyeOff size={20} />
-                </button>
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    setSearchQuery('');
-                    setSelectedCategory(null);
-                    setExpandedFAQ(null);
-                  }}
-                  className="hover:bg-white/20 p-2 rounded-lg transition"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {/* Search Bar */}
-              <div className="p-6 border-b">
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Search help topics..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setSelectedCategory(null);
-                    }}
-                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
+        <div 
+          className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300"
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
 
-              {/* Category Tabs */}
-              <div className="px-6 py-4 border-b bg-gray-50">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Categories:</p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedCategory(null);
-                      setSearchQuery('');
-                      setExpandedFAQ(null);
-                    }}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition ${
-                      selectedCategory === null
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    All Topics
-                  </button>
-                  {categories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => {
-                        setSelectedCategory(category);
-                        setSearchQuery('');
-                        setExpandedFAQ(null);
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition ${
-                        selectedCategory === category
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* FAQs List */}
-              <div className="p-6 space-y-3">
-                {filteredFAQs.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 text-lg">No results found</p>
-                    <p className="text-gray-400 text-sm">Try different search terms</p>
-                  </div>
-                ) : (
-                  filteredFAQs.map(faq => (
-                    <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-400 transition">
-                      <button
-                        onClick={() => setExpandedFAQ(expandedFAQ === faq.id ? null : faq.id)}
-                        className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 transition flex justify-between items-start gap-3"
-                      >
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-800 text-sm mb-1">{faq.question}</p>
-                          <p className="text-xs text-blue-600 font-medium">{faq.category}</p>
-                        </div>
-                        <span className={`text-blue-500 flex-shrink-0 transition transform ${expandedFAQ === faq.id ? 'rotate-180' : ''}`}>
-                          ▼
-                        </span>
-                      </button>
-                      
-                      {expandedFAQ === faq.id && (
-                        <div className="p-4 bg-white border-t border-gray-200">
-                          <div className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">
-                            {faq.answer}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-t p-4 bg-gray-50 rounded-b-xl flex justify-between items-center">
-              <p className="text-xs text-gray-600">
-                {filteredFAQs.length} result{filteredFAQs.length !== 1 ? 's' : ''} found
-              </p>
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  setSearchQuery('');
-                  setSelectedCategory(null);
-                  setExpandedFAQ(null);
-                }}
-                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition"
-              >
-                Close
-              </button>
-            </div>
+      {/* Side Drawer */}
+      <div 
+        className={`fixed top-0 right-0 h-screen w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 flex justify-between items-center gap-4 flex-shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold">📚 Help</h2>
+            <p className="text-blue-100 text-sm">Find answers quickly</p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={toggleHidden}
+              className="hover:bg-white/20 p-2 rounded-lg transition"
+              title="Hide help button from all pages"
+            >
+              <EyeOff size={20} />
+            </button>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setSearchQuery('');
+                setSelectedCategory(null);
+                setExpandedFAQ(null);
+              }}
+              className="hover:bg-white/20 p-2 rounded-lg transition"
+            >
+              <X size={24} />
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Content Area - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Search Bar */}
+          <div className="p-6 border-b sticky top-0 bg-white z-10">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search help..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedCategory(null);
+                }}
+                className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="px-6 py-4 border-b bg-gray-50 sticky top-16 z-10">
+            <p className="text-xs font-semibold text-gray-700 mb-3 uppercase">Categories</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSearchQuery('');
+                  setExpandedFAQ(null);
+                }}
+                className={`px-2 py-1 rounded-full text-xs font-medium transition ${
+                  selectedCategory === null
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setSearchQuery('');
+                    setExpandedFAQ(null);
+                  }}
+                  className={`px-2 py-1 rounded-full text-xs font-medium transition truncate ${
+                    selectedCategory === category
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* FAQs List */}
+          <div className="p-6 space-y-3">
+            {filteredFAQs.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No results found</p>
+                <p className="text-gray-400 text-sm">Try different search terms</p>
+              </div>
+            ) : (
+              filteredFAQs.map(faq => (
+                <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-400 transition">
+                  <button
+                    onClick={() => setExpandedFAQ(expandedFAQ === faq.id ? null : faq.id)}
+                    className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 transition flex justify-between items-start gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm mb-1 break-words">{faq.question}</p>
+                      <p className="text-xs text-blue-600 font-medium">{faq.category}</p>
+                    </div>
+                    <span className={`text-blue-500 flex-shrink-0 transition transform ${expandedFAQ === faq.id ? 'rotate-180' : ''}`}>
+                      ▼
+                    </span>
+                  </button>
+                  
+                  {expandedFAQ === faq.id && (
+                    <div className="p-4 bg-white border-t border-gray-200">
+                      <div className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">
+                        {faq.answer}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t p-4 bg-gray-50 flex-shrink-0">
+          <p className="text-xs text-gray-600 mb-3">
+            {filteredFAQs.length} result{filteredFAQs.length !== 1 ? 's' : ''} found
+          </p>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setSearchQuery('');
+              setSelectedCategory(null);
+              setExpandedFAQ(null);
+            }}
+            className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </>
   );
 };
