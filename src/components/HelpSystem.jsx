@@ -78,7 +78,7 @@ const HelpSystem = () => {
   return (
     <>
       {/* Floating Help Button with Animated Label */}
-      <div className="fixed bottom-6 right-6 z-40 group">
+      <div className="fixed bottom-6 right-6 z-50 group">
         {/* Animated Background Pulse */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 animate-pulse"></div>
         
@@ -98,7 +98,7 @@ const HelpSystem = () => {
 
       {/* Help Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-xl flex justify-between items-center gap-4">
