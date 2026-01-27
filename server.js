@@ -6,6 +6,9 @@ import FormData from 'form-data';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
+import rateLimit from 'express-rate-limit';
+import validator from 'email-validator';
+import helmet from 'helmet';
 
 dotenv.config();
 
@@ -28,8 +31,75 @@ try {
 }
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+// Configure CORS with whitelist
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(o => o) || [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed from origin: ' + origin));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 3600
+}));
+
+// Apply security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.anthropic.com", "https://api.stability.ai", "https://*.firebaseapp.com"]
+    }
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
+}));
+
+// Body size limits
+app.use(express.json({ limit: '10mb', strict: true }));
+app.use(express.urlencoded({ limit: '10mb', extended: false }));
+
+// Rate limiting configuration
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many OTP requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === 'test'
+});
+
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 verification attempts
+  skipSuccessfulRequests: true,
+  message: 'Too many failed OTP verification attempts, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === 'test'
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === 'test'
+});
 
 const CLAUDE_API_KEY = (process.env.CLAUDE_API_KEY || '').trim();
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -37,8 +107,15 @@ const STABILITY_API_KEY = (process.env.STABILITY_API_KEY || '').trim();
 // Using stable-image-ultra which is the latest model
 const STABILITY_API_URL = 'https://api.stability.ai/v2beta/stable-image/generate/ultra';
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
+// JWT Configuration - CRITICAL: Must fail if not set
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET environment variable is not set');
+  console.error('Generate with: node -e "console.log(require(\"crypto\").randomBytes(32).toString(\"hex\"))"');
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
+}
 const OTP_EXPIRY_MINUTES = 10;
 
 // Email Configuration (Gmail with App Password)
@@ -105,14 +182,16 @@ const sendOTPEmail = async (email, otp) => {
 };
 
 // POST /api/send-otp - Send OTP to teacher email
-app.post('/api/send-otp', async (req, res) => {
+app.post('/api/send-otp', otpLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid email required' });
+    // Validate email properly
+    if (!email || !validator.validate(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
     }
 
+    const sanitizedEmail = email.toLowerCase().trim();
     const otp = generateOTP();
     const expiryTime = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000);
 
@@ -120,7 +199,7 @@ app.post('/api/send-otp', async (req, res) => {
     if (db) {
       try {
         await db.collection('teacherOTPs').add({
-          email: email.toLowerCase(),
+          email: sanitizedEmail,
           otp: otp,
           expiryTime: expiryTime,
           verified: false,
@@ -131,7 +210,7 @@ app.post('/api/send-otp', async (req, res) => {
       }
     }
 
-    const emailSent = await sendOTPEmail(email, otp);
+    const emailSent = await sendOTPEmail(sanitizedEmail, otp);
 
     if (emailSent) {
       res.json({ 
@@ -149,7 +228,7 @@ app.post('/api/send-otp', async (req, res) => {
 });
 
 // POST /api/verify-otp - Verify OTP and return JWT token
-app.post('/api/verify-otp', async (req, res) => {
+app.post('/api/verify-otp', verifyLimiter, async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -157,11 +236,13 @@ app.post('/api/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Email and OTP required' });
     }
 
+    const sanitizedEmail = email.toLowerCase().trim();
+
     // Query Firestore for matching OTP
     if (db) {
       try {
         const query = await db.collection('teacherOTPs')
-          .where('email', '==', email.toLowerCase())
+          .where('email', '==', sanitizedEmail)
           .where('otp', '==', otp)
           .where('verified', '==', false)
           .orderBy('createdAt', 'desc')
@@ -185,7 +266,7 @@ app.post('/api/verify-otp', async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign(
-          { email: email.toLowerCase(), timestamp: Date.now() },
+          { email: sanitizedEmail, timestamp: Date.now() },
           JWT_SECRET,
           { expiresIn: '7d' }
         );
@@ -193,28 +274,15 @@ app.post('/api/verify-otp', async (req, res) => {
         res.json({ 
           success: true, 
           token: token,
-          email: email.toLowerCase(),
+          email: sanitizedEmail,
           message: 'Login successful'
         });
       } catch (dbError) {
-        console.warn('Firestore verification error:', dbError.message);
-        // Fallback for mock mode
-        if (otp === '123456') {
-          const token = jwt.sign(
-            { email: email.toLowerCase(), timestamp: Date.now() },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-          );
-          res.json({ 
-            success: true, 
-            token: token,
-            email: email.toLowerCase(),
-            message: 'Login successful (mock mode)'
-          });
-        } else {
-          res.status(401).json({ error: 'Invalid OTP' });
-        }
+        console.error('Database error during OTP verification:', dbError.message);
+        res.status(500).json({ error: 'Database error. Please try again.' });
       }
+    } else {
+      res.status(500).json({ error: 'Database not configured' });
     }
   } catch (error) {
     console.error('Verify OTP error:', error);
@@ -238,7 +306,7 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-app.post('/api/generate-vocabulary', async (req, res) => {
+app.post('/api/generate-vocabulary', apiLimiter, async (req, res) => {
   try {
     // Validate Bearer token
     const authHeader = req.headers.authorization;
